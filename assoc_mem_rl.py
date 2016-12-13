@@ -1,5 +1,6 @@
 import nengo
 from nengo import spa
+import numpy as np
 
 DIM = 64
 
@@ -41,3 +42,18 @@ with model:
     nengo.Connection(model.cconv.output, model.assoc_mem.input)
     nengo.Connection(model.assoc_mem.output, model.probability.input)
 
+    # Semantic pointer for the Q values of each state
+    # In the form of q0*S0 + q1*S1 + q2*S2
+    model.q = spa.State(DIM, vocab=vocab)
+    
+    # Scalar reward value from the dot product of P and Q
+    model.reward = nengo.Ensemble(100, 1)
+
+    #TODO: figure out what the result of P.Q is used for
+    model.prod = nengo.networks.Product(n_neurons=15*DIM, dimensions=DIM)
+
+    nengo.Connection(model.probability.output, model.prod.A)
+    nengo.Connection(model.q.output, model.prod.B)
+
+    nengo.Connection(model.prod.output, model.reward,
+                     transform=np.ones((1,DIM)))
