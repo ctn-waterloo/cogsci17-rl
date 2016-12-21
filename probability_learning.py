@@ -3,6 +3,7 @@
 import nengo
 from nengo import spa
 import numpy as np
+from environment import Environment
 
 DIM = 64
 
@@ -22,13 +23,10 @@ for sp in states+actions:
 model = nengo.Network('RL P-learning', seed=13)
 with model:
 
-    model.assoc_mem = spa.AssociativeMemory(input_vocab=vocab,
-                                            output_vocab=vocab,
-                                            input_keys=input_keys,
-                                            output_keys=output_keys,
-                                            wta_output=True,
-                                            threshold_output=True
-                                           )
+    # Model of the external environment
+    # Input: action semantic pointer
+    # Output: current state semantic pointer
+    model.env = nengo.Node(Environment(vocab=vocab), size_in=DIM, size_out=DIM)
 
     model.state = spa.State(DIM, vocab=vocab)
     model.action = spa.State(DIM, vocab=vocab)
@@ -62,3 +60,9 @@ with model:
 
     nengo.Connection(model.prod.output, model.reward,
                      transform=np.ones((1,DIM)))
+
+    #TODO: doublecheck that this is the correct way to connect things
+    nengo.Connection(model.env, model.state.input)
+    nengo.Connection(model.action.output, model.env)
+
+    #TODO: need to set up error signal and handle timing
