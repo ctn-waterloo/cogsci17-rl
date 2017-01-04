@@ -4,6 +4,8 @@ import nengo
 from nengo import spa
 import numpy as np
 from environment import Environment
+#import nengolib
+from nengolib.signal import z
 
 DIM = 64
 
@@ -42,7 +44,10 @@ with model:
 
     nengo.Connection(model.state.output, model.state_and_action[:DIM])
     nengo.Connection(model.action.output, model.state_and_action[DIM:])
-    nengo.Connection(model.state_and_action, model.probability.input, function=lambda x: [0]*DIM)
+    conn = nengo.Connection(model.state_and_action, model.probability.input,
+                            function=lambda x: [0]*DIM,
+                            learning_rule_type=nengo.PES(),
+                           )
 
 
     # Semantic pointer for the Q values of each state
@@ -66,3 +71,17 @@ with model:
     nengo.Connection(model.action.output, model.env)
 
     #TODO: need to set up error signal and handle timing
+    model.error = spa.State(DIM, vocab=vocab)
+    nengo.Connection(model.error.output, conn.learning_rule)
+
+    #TODO: figure out which way the sign goes, one should be negative, and the other positive
+    #TODO: figure out how to delay by one "time-step" correctly
+    nengo.Connection(model.state.output, model.error.input, transform=-1)
+    nengo.Connection(model.probability.output, model.error.input, transform=1,
+                     synapse=z**(-500))
+                     #synapse=nengolib.synapses.PureDelay(500)) #500ms delay
+
+    # Testing the delay synapse to make sure it works as expected
+    model.state_delay_test = spa.State(DIM, vocab=vocab)
+    nengo.Connection(model.state.output, model.state_delay_test.input,
+                     synapse=z**(-500))
