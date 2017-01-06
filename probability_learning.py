@@ -6,8 +6,12 @@ import numpy as np
 from environment import Environment
 #import nengolib
 from nengolib.signal import z
+import scipy
 
-DIM = 64
+DIM = 5#64
+
+# Time between state transitions
+time_interval = 0.5
 
 states = ['S0', 'S1', 'S2']
 
@@ -16,11 +20,36 @@ actions = ['L', 'R']
 n_sa_neurons = DIM*2*15 # number of neurons in the state+action population
 n_prod_neurons = DIM*15 # number of neurons in the product network
 
-vocab = spa.Vocabulary(dimensions=DIM)
+vocab = spa.Vocabulary(dimensions=DIM, randomize=False)
 
 # TODO: these vectors might need to be chosen in a smarter way
 for sp in states+actions:
     vocab.parse(sp)
+
+class AreaIntercepts(nengo.dists.Distribution):
+    dimensions = nengo.params.NumberParam('dimensions')
+    base = nengo.dists.DistributionParam('base')
+
+    def __init__(self, dimensions, base=nengo.dists.Uniform(-1, 1)):
+        super(AreaIntercepts, self).__init__()
+        self.dimensions = dimensions
+        self.base = base
+
+    def __repr(self):
+        return "AreaIntercepts(dimensions=%r, base=%r)" % (self.dimensions, self.base)
+
+    def transform(self, x):
+        sign = 1
+        if x > 0:
+            x = -x
+            sign = -1
+        return sign * np.sqrt(1-scipy.special.betaincinv((self.dimensions+1)/2.0, 0.5, x+1))
+
+    def sample(self, n, d=None, rng=np.random):
+        s = self.base.sample(n=n, d=d, rng=rng)
+        for i in range(len(s)):
+            s[i] = self.transform(s[i])
+        return s
 
 model = nengo.Network('RL P-learning', seed=13)
 with model:
@@ -28,7 +57,7 @@ with model:
     # Model of the external environment
     # Input: action semantic pointer
     # Output: current state semantic pointer
-    model.env = nengo.Node(Environment(vocab=vocab), size_in=DIM, size_out=DIM)
+    model.env = nengo.Node(Environment(vocab=vocab, time_interval=time_interval), size_in=DIM, size_out=DIM)
 
     model.state = spa.State(DIM, vocab=vocab)
     model.action = spa.State(DIM, vocab=vocab)
@@ -38,7 +67,7 @@ with model:
     model.resulting_state = spa.State(DIM, vocab=vocab)
 
     # State and selected action in one ensemble
-    model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2)
+    model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=AreaIntercepts(dimensions=DIM*2))
 
     #model.cconv = nengo.networks.CircularConvolution(300, DIM)
 
@@ -46,7 +75,7 @@ with model:
     nengo.Connection(model.action.output, model.state_and_action[DIM:])
     conn = nengo.Connection(model.state_and_action, model.probability.input,
                             function=lambda x: [0]*DIM,
-                            learning_rule_type=nengo.PES(),
+                            learning_rule_type=nengo.PES(pre_tau=time_interval),
                            )
 
 
@@ -78,10 +107,10 @@ with model:
     #TODO: figure out how to delay by one "time-step" correctly
     nengo.Connection(model.state.output, model.error.input, transform=-1)
     nengo.Connection(model.probability.output, model.error.input, transform=1,
-                     synapse=z**(-500))
+                     synapse=z**(-int(time_interval*1000)))
                      #synapse=nengolib.synapses.PureDelay(500)) #500ms delay
 
     # Testing the delay synapse to make sure it works as expected
     model.state_delay_test = spa.State(DIM, vocab=vocab)
     nengo.Connection(model.state.output, model.state_delay_test.input,
-                     synapse=z**(-500))
+                     synapse=z**(-int(time_interval*1000)))
