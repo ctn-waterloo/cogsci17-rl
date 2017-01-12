@@ -11,7 +11,7 @@ import scipy
 DIM = 5#64
 
 # Time between state transitions
-time_interval = 0.5
+time_interval = 0.1#0.5
 
 states = ['S0', 'S1', 'S2']
 
@@ -20,6 +20,7 @@ actions = ['L', 'R']
 n_sa_neurons = DIM*2*15 # number of neurons in the state+action population
 n_prod_neurons = DIM*15 # number of neurons in the product network
 
+# Set all vectors to be orthogonal for now (easy debugging)
 vocab = spa.Vocabulary(dimensions=DIM, randomize=False)
 
 # TODO: these vectors might need to be chosen in a smarter way
@@ -75,7 +76,7 @@ with model:
     nengo.Connection(model.action.output, model.state_and_action[DIM:])
     conn = nengo.Connection(model.state_and_action, model.probability.input,
                             function=lambda x: [0]*DIM,
-                            learning_rule_type=nengo.PES(pre_tau=time_interval),
+                            learning_rule_type=nengo.PES(pre_synapse=z**(-int(time_interval*1000))),
                            )
 
 
