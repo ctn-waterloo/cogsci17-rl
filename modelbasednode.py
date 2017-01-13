@@ -2,12 +2,13 @@ import random
 import random
 import modelbasedforward as mb
 import numpy as np
+from __future__ import print_function  # Only needed for Python 2
 
 # Uses the Q-update strategy found in Daw et al. 2011 supplemental materials
 # Implements the Daw task without learning the transition probabilities 
 
 class Agent():
-    def __init__(self, vocab, time_interval, randomReward = True, case1 = 0.25, case2 = 0.5, case3 = 0.5, case4 = 0.75):
+    def __init__(self, vocab, time_interval, outfile=None, randomReward = True, case1 = 0.25, case2 = 0.5, case3 = 0.5, case4 = 0.75):
         state_dict = {1:[0], 2:[1, 2]}
         transition_dict = {(0, "left", 1):0.7,
                             (0, "left", 2):0.3,
@@ -45,6 +46,7 @@ class Agent():
 
 
         # Saving data to a file
+        self.outfile = outfile
         self.firstStageChoice = None
         self.secondStage = None
         self.secondStageChoice = None
@@ -247,8 +249,9 @@ class Agent():
             else: # in stage 2
                 self.secondStageChoice = self.getLastAction()
                 self.finalReward = self.getCurrReward()
-                # Print results to a file
-                print self.firstStageChoice, self.secondStage, self.secondStageChoice, self.finalReward
+                if self.outfile is not None:
+                    # Print results to a file
+                    print('{0} {1} {2} {3}'.format(self.firstStageChoice, self.secondStage, self.secondStageChoice, self.finalReward), file=outfile)
             self.step += 1
         
         return np.concatenate((self.action_vec, self.state_vec, self.q_vec))

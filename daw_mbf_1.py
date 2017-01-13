@@ -5,7 +5,8 @@ import modelbasedforward as mb
 # Implements the Daw task without learning the transition probabilities 
 
 class Agent():
-	def __init__(self, randomReward = True, case1 = 0.25, case2 = 0.5, case3 = 0.5, case4 = 0.75):
+	def __init__(self, randomReward = True, case1 = 0.25, case2 = 0.5, case3 = 0.5, case4 = 0.75, 
+                 alpha=0.3, noise=0.05):
 		state_dict = {1:[0], 2:[1, 2]}
 		transition_dict = {(0, "left", 1):0.7,
 							(0, "left", 2):0.3,
@@ -15,7 +16,8 @@ class Agent():
 							(1, "right", 0):1.0,
 							(2, "left", 0):1.0,
 							(2, "right", 0):1.0}
-		self.ai = mb.ModelBasedForward(actions=["left", "right"], states = state_dict, transitions=transition_dict)
+		self.ai = mb.ModelBasedForward(actions=["left", "right"], states = state_dict, transitions=transition_dict, 
+                                       alpha=alpha, noise=noise)
 		self.lastAction = None
 		self.lastState = None
 		self.numLevels = len(state_dict)

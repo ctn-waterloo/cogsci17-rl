@@ -7,7 +7,8 @@ import numpy as np
 # it doesn't learn them
 
 class ModelBasedForward:
-    def __init__(self, actions, states, transitions, epsilon=0.1, alpha=0.3, gamma=0.5):
+    def __init__(self, actions, states, transitions, epsilon=0.1, alpha=0.3,
+                 gamma=0.5, noise=0.05):
         self.q={} # this is a dictionary of the form: 
                 # key: (state, action)
                 # value: q_value 
@@ -24,6 +25,7 @@ class ModelBasedForward:
         self.actions = actions
         self.states = states
         self.prev = None
+        self.noise = noise
 
     def getQ(self, state, action):
         return self.q.get((state,action),0.0)
@@ -105,8 +107,8 @@ class ModelBasedForward:
         #else:
         #    return self.max_action(state)
 
-        noise = 0.05
-        q=[self.getQ(state,a)+random.normalvariate(0, noise) for a in self.actions]
+        #noise = 0.05
+        q=[self.getQ(state,a)+random.normalvariate(0, self.noise) for a in self.actions]
         i=q.index(max(q))
         action=self.actions[i]
         return action
