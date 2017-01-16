@@ -125,6 +125,112 @@ class CalcStayProb():
             second = f.readline()
         # everything probably worked!
         return 0
+    
+    def countStrings(self, f):
+        first = f[0]
+        second = f[1]
+        i = 1
+        while i < len(f):
+            firstChoice, nextState, secondChoice, reward = first.split(' ')
+            reward = int(reward)
+            nextFirst = second.split(' ')[0]
+            # okay, this is not general at all, but I'm going to program it this way first so that I know roughly what I'm doing
+            if firstChoice == "left":
+                #print "a"
+                if nextState == "2":
+                    #print "b"
+                    if reward == 1:
+                        #print "c"
+                        # rare rewarded case
+                        self.trr += 1
+                        if nextFirst == firstChoice:
+                            #print "d"
+                            self.trr_s += 1
+                    elif reward == 0:
+                        #print "e"
+                        # rare unrewarded case
+                        self.tru += 1
+                        if nextFirst == firstChoice:
+                            #print "f"
+                            self.tru_s += 1
+                    else:
+                        print ("something probably wrong with your string parsing of last token")
+                        return 1
+                elif nextState == "1":
+                    #print "g"
+                    if reward == 1:
+                        #print "h"
+                        # common rewarded case
+                        self.tcr += 1
+                        if nextFirst == firstChoice:
+                            #print "i"
+                            self.tcr_s += 1
+                    elif reward == 0:
+                        #print "j"
+                        # common unrewarded case
+                        self.tcu += 1
+                        if nextFirst == firstChoice:
+                            #print "k"
+                            self.tcu_s += 1
+                    else:
+                        print ("something probably wrong with your string parsing of last token")
+                        return 2
+                else:
+                    print ("something may have gone wrong with parsing the second token")
+                    return 3
+            elif firstChoice == "right":
+                #print "l"
+                if nextState == "1":
+                    #print "m"
+                    if reward == 1:
+                        #print "n"
+                        #rare rewarded case
+                        self.trr += 1
+                        if nextFirst == firstChoice:
+                            #print "o"
+                            self.trr_s += 1
+                    elif reward == 0:
+                        #print "p"
+                        # rare unrewarded case
+                        self.tru += 1
+                        if nextFirst == firstChoice:
+                            #print "q"
+                            self.tru_s += 1
+                    else:
+                        print ("something probably wrong with your string parsing of last token")
+                        return 4
+                elif nextState == "2":
+                    #print "r"
+                    if reward == 1:
+                        #print "s"
+                        # common rewarded case
+                        self.tcr += 1
+                        if nextFirst == firstChoice:
+                            #print "t"
+                            self.tcr_s += 1
+                    elif reward == 0:
+                        #print "u"
+                        # common unrewarded case
+                        self.tcu += 1
+                        if nextFirst == firstChoice:
+                            #print "v"
+                            self.tcu_s += 1
+                    else:
+                        print ("something probably wrong with your string parsing of last token")
+                        return 5
+                else:
+                    print ("something may have gone wrong with parsing the second token")
+                    return 6
+            else:
+                print ("something may have gone wrong with parsing the first token")
+                return 7
+            i += 1
+            if i == len(f):
+                break
+            first = second
+            second = f[i]
+        # everything probably worked!
+        return 0
 
     def calcStayProb(self, outfile=None):
         stay_tcr = self.tcr_s/self.tcr
@@ -140,6 +246,15 @@ class CalcStayProb():
         f = open(fileName)
         # maybe some other stuff here to catch exceptions
         success = self.countFile(f)
+        if success == 0:
+            # good
+            self.calcStayProb(outfile=outfile)
+        else:
+            print(success)
+    
+    def doItAllString(self, strings, outfile=None):
+        # maybe some other stuff here to catch exceptions
+        success = self.countStrings(strings)
         if success == 0:
             # good
             self.calcStayProb(outfile=outfile)
