@@ -55,17 +55,22 @@ class AreaIntercepts(nengo.dists.Distribution):
             s[i] = self.transform(s[i])
         return s
 
-def get_model(outfile):
+def get_model(q_scaling=1, direct=False):
+
 
     model = nengo.Network('RL P-learning', seed=13)
+    if direct:
+        model.config[nengo.Ensemble].neuron_type = nengo.Direct()
+
     with model:
 
         # Model of the external environment
         # Input: action semantic pointer
         # Output: current state semantic pointer
         #model.env = nengo.Node(Environment(vocab=vocab, time_interval=time_interval), size_in=DIM, size_out=DIM)
-        model.env = nengo.Node(Agent(vocab=vocab, time_interval=time_interval,
-                                     outfile=outfile),
+        agent = Agent(vocab=vocab, time_interval=time_interval,
+                      q_scaling=q_scaling)
+        model.env = nengo.Node(agent,
                                size_in=1, size_out=DIM*3)
 
         model.state = spa.State(DIM, vocab=vocab)
@@ -125,4 +130,4 @@ def get_model(outfile):
         nengo.Connection(model.env[:DIM], model.action.input) # Purely for plotting
         nengo.Connection(model.env[DIM*2:], model.q.input) # Purely for plotting
 
-    return model
+    return model, agent
