@@ -1,14 +1,13 @@
-import random
+from __future__ import print_function  # Only needed for Python 2
 import random
 import modelbasedforward as mb
 import numpy as np
-from __future__ import print_function  # Only needed for Python 2
 
 # Uses the Q-update strategy found in Daw et al. 2011 supplemental materials
 # Implements the Daw task without learning the transition probabilities 
 
 class Agent():
-    def __init__(self, vocab, time_interval, outfile=None, randomReward = True, case1 = 0.25, case2 = 0.5, case3 = 0.5, case4 = 0.75):
+    def __init__(self, vocab, time_interval, q_scaling=1, outfile=None, randomReward = True, case1 = 0.25, case2 = 0.5, case3 = 0.5, case4 = 0.75):
         state_dict = {1:[0], 2:[1, 2]}
         transition_dict = {(0, "left", 1):0.7,
                             (0, "left", 2):0.3,
@@ -52,7 +51,9 @@ class Agent():
         self.secondStageChoice = None
         self.finalReward = None
         self.step = 0
+        self.result_string = []
         # Nengo stuff
+        self.q_scaling = q_scaling
         self.time_interval = time_interval
         self.states = ['S0', 'S1', 'S2']
         self.actions = ['L', 'R']
@@ -150,7 +151,7 @@ class Agent():
                     reward = 1
                 return reward
             else:
-                print "Something went very wrong with choosing the action: should be either left or right"
+                print("Something went very wrong with choosing the action: should be either left or right")
                 return None
         if currState == 2:
             if currAction == "left": # choose left (CASE 3)
@@ -166,7 +167,7 @@ class Agent():
                     reward = 1
                 return reward
             else:
-                print "Something went very wrong with choosing the action: should be either left or right"
+                print("Something went very wrong with choosing the action: should be either left or right")
                 return None
 
     def updateRewardProb(self):
@@ -234,8 +235,8 @@ class Agent():
             self.q_vec = np.zeros((self.dim))
             for i, s in enumerate(self.states):
                 next_action = self.ai.max_action(i)
-                q_val = self.ai.getQ(s, next_action)
-                self.q_vec += self.index_to_state_vector[state] * q_val 
+                q_val = self.ai.getQ(i, next_action)
+                self.q_vec += self.index_to_state_vector[state] * q_val * self.q_scaling
 
             self.action_vec = self.index_to_action_vector[self.action_strings.index(action)]
             self.state_vec = self.index_to_state_vector[state]
@@ -251,7 +252,9 @@ class Agent():
                 self.finalReward = self.getCurrReward()
                 if self.outfile is not None:
                     # Print results to a file
-                    print('{0} {1} {2} {3}'.format(self.firstStageChoice, self.secondStage, self.secondStageChoice, self.finalReward), file=outfile)
+                    print('{0} {1} {2} {3}'.format(self.firstStageChoice, self.secondStage, self.secondStageChoice, self.finalReward), file=self.outfile)
+                else:
+                    self.result_string.append('{0} {1} {2} {3}'.format(self.firstStageChoice, self.secondStage, self.secondStageChoice, self.finalReward))
             self.step += 1
         
         return np.concatenate((self.action_vec, self.state_vec, self.q_vec))
