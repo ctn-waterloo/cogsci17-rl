@@ -147,6 +147,8 @@ def get_model(q_scaling=1, direct=False, p_learning=True):
 
         return model, agent
     else:
+        if direct:
+            model.config[nengo.Ensemble].neuron_type = nengo.Direct()
         with model:
             agent = Agent(vocab=vocab, time_interval=time_interval,
                           q_scaling=q_scaling)

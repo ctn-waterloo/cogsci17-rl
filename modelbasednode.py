@@ -226,6 +226,7 @@ class Agent():
         return 1    
     
     def __call__(self, t, reward_nengo):
+        #TODO: filter the reward value over the time interval to get a less noisy result
         if t - self.last_t >= self.time_interval:
             self.oneStep(reward_nengo)
             action = self.lastAction
