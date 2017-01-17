@@ -80,8 +80,9 @@ class ModelBasedForward:
         if state2_level == 2: # we are currently learning the value of the first stage (state 0)
             # recompute the Q-values for each possible action based on 
             # current estimates of transition probabilities and rewards at stage 2
-            for a in self.actions:
-                self.q[(state1, a)] = reward_nengo
+            for i, a in enumerate(self.actions):
+                self.q[(state1, a)] = reward_nengo[i] #THIS IS WRONG!!!!!!!!!!!!! #also put all ens in direct mode except learning one for now, to speed things up
+                #self.q[(state1, a)] = reward_nengo #THIS IS WRONG!!!!!!!!!!!!! #also put all ens in direct mode except learning one for now, to speed things up
 
         # "state1" is either state 1 or 2
         elif state2_level == 1: # we are currently learning the value of the second state (state 1 or 2)

@@ -84,8 +84,8 @@ with model:
     # In the form of q0*S0 + q1*S1 + q2*S2
     model.q = spa.State(DIM, vocab=vocab)
     
-    # Scalar reward value from the dot product of P and Q
-    model.reward = nengo.Ensemble(100, 1)
+    # Scalar value from the dot product of P and Q
+    model.value = nengo.Ensemble(100, 1)
 
     #TODO: figure out what the result of P.Q is used for
     model.prod = nengo.networks.Product(n_neurons=n_prod_neurons, dimensions=DIM)
@@ -94,7 +94,7 @@ with model:
     #nengo.Connection(model.q.output, model.prod.B)
     nengo.Connection(model.env[DIM*2:], model.prod.B)
 
-    nengo.Connection(model.prod.output, model.reward,
+    nengo.Connection(model.prod.output, model.value,
                      transform=np.ones((1,DIM)))
 
     #TODO: doublecheck that this is the correct way to connect things
@@ -116,6 +116,6 @@ with model:
     nengo.Connection(model.state.output, model.state_delay_test.input,
                      synapse=z**(-int(time_interval*1000)))
 
-    nengo.Connection(model.reward, model.env)
+    nengo.Connection(model.value, model.env)
     nengo.Connection(model.env[:DIM], model.action.input) # Purely for plotting
     nengo.Connection(model.env[DIM*2:], model.q.input) # Purely for plotting

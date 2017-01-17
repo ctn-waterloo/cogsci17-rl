@@ -1,7 +1,8 @@
 # Runs the nengo model a bunch of times and prints to a file that can be plotted with pandas
 
 from __future__ import print_function  # Only needed for Python 2
-from full_model_function import get_model
+#from full_model_function import get_model
+from fixed_model_function import get_model
 from calcStayProb import CalcStayProb
 import sys
 import time
