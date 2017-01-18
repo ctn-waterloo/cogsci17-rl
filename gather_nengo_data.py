@@ -13,7 +13,7 @@ num_steps = 40#40000
 tf_name = 'temp_file.txt'
 
 # Running some ensembles in Direct mode
-direct = True
+direct = False#True
 
 # If the transition probabilities should be learned
 p_learning = False
@@ -49,3 +49,4 @@ with open(outfile_name, 'w+') as outfile:
 
         calculator = CalcStayProb()
         calculator.doItAllString(temp_str, outfile)
+print(outfile_name)

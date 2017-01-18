@@ -53,6 +53,7 @@ class Agent():
         self.step = 0
         self.result_string = []
         # Nengo stuff
+        self.value_nengo = np.zeros(2)
         self.q_scaling = q_scaling
         self.time_interval = time_interval
         self.states = ['S0', 'S1', 'S2']
@@ -203,7 +204,7 @@ class Agent():
         else:
             return self.currLevel + 1
 
-    def oneStep(self, reward_nengo):
+    def oneStep(self, value_nengo):
         #print ""
         #print "debug:"
         #print "    ", self.lastBoardState, self.lastAction, self.currBoardState, self.currLevel
@@ -215,7 +216,7 @@ class Agent():
         
         if self.lastAction != None:
             #print "  learning is happening"
-            if self.ai.learn_nengo(self.lastBoardState, self.lastAction, self.pastReward, self.currBoardState, self.currLevel, reward_nengo) == None:
+            if self.ai.learn_nengo(self.lastBoardState, self.lastAction, self.pastReward, self.currBoardState, self.currLevel, value_nengo) == None:
                 return None
         # more bookkeeping
         self.lastBoardState = self.currBoardState
@@ -225,10 +226,19 @@ class Agent():
         self.lastAction = currAction
         return 1    
     
-    def __call__(self, t, reward_nengo):
+    def __call__(self, t, value_nengo):
+        ##self.value_nengo += value_nengo #xx2
+        #self.value_nengo = (self.value_nengo*3./4. + value_nengo*1./4.) #xx4
+        #if self.value_nengo[0] == 0:
+        #    self.value_nengo = np.array(value_nengo)
+        #else:
+        #    self.value_nengo = (self.value_nengo*9./10. + value_nengo*1./10.) #xx6
+        self.value_nengo[0] = max(self.value_nengo[0], value_nengo[0])
+        self.value_nengo[1] = max(self.value_nengo[1], value_nengo[1]) #xx8
         #TODO: filter the reward value over the time interval to get a less noisy result
         if t - self.last_t >= self.time_interval:
-            self.oneStep(reward_nengo)
+            ##self.value_nengo /= (self.time_interval)*1000 #xx2
+            self.oneStep(self.value_nengo)
             action = self.lastAction
             state = self.getCurrBoardState()
             q = self.ai.getQ(state, action)
@@ -257,5 +267,6 @@ class Agent():
                 else:
                     self.result_string.append('{0} {1} {2} {3}'.format(self.firstStageChoice, self.secondStage, self.secondStageChoice, self.finalReward))
             self.step += 1
+            self.value_nengo = np.zeros(2)
         
         return np.concatenate((self.action_vec, self.state_vec, self.q_vec))

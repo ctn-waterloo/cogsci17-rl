@@ -105,6 +105,7 @@ def find_closest_vector(vec, index_to_vector):
 
 neuron_type=nengo.Direct()
 model = nengo.Network('RL P-learning', seed=13)
+#model.config[nengo.Ensemble].neuron_type = nengo.Direct()
 with model:
 
     # Model of the external environment
