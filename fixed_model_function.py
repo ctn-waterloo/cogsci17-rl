@@ -187,7 +187,8 @@ def get_model(q_scaling=1, direct=False, p_learning=True):
             model.q = spa.State(DIM, vocab=vocab)
             
             # Scalar reward value from the dot product of P and Q
-            model.value = nengo.Ensemble(200, 2, neuron_type=neuron_type)
+            #model.value = nengo.Ensemble(200, 2, neuron_type=neuron_type)
+            model.value = nengo.Ensemble(200, 2, neuron_type=nengo.Direct())
 
             model.prod_left = nengo.networks.Product(n_neurons=15*DIM, dimensions=DIM)
             model.prod_right = nengo.networks.Product(n_neurons=15*DIM, dimensions=DIM)
