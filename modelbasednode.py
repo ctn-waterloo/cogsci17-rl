@@ -233,11 +233,15 @@ class Agent():
         #    self.value_nengo = np.array(value_nengo)
         #else:
         #    self.value_nengo = (self.value_nengo*9./10. + value_nengo*1./10.) #xx6
-        self.value_nengo[0] = max(self.value_nengo[0], value_nengo[0])
-        self.value_nengo[1] = max(self.value_nengo[1], value_nengo[1]) #xx8
+        #self.value_nengo[0] = max(self.value_nengo[0], value_nengo[0])
+        #self.value_nengo[1] = max(self.value_nengo[1], value_nengo[1]) #xx8 # this one is super terrible
+        self.value_nengo[0] += value_nengo[0]
+        self.value_nengo[1] += value_nengo[1] #x10
         #TODO: filter the reward value over the time interval to get a less noisy result
         if t - self.last_t >= self.time_interval:
             ##self.value_nengo /= (self.time_interval)*1000 #xx2
+            self.value_nengo[0] /= (self.time_interval)*1000 #x10
+            self.value_nengo[1] /= (self.time_interval)*1000 #x10
             self.oneStep(self.value_nengo)
             action = self.lastAction
             state = self.getCurrBoardState()
@@ -247,7 +251,7 @@ class Agent():
             for i, s in enumerate(self.states):
                 next_action = self.ai.max_action(i)
                 q_val = self.ai.getQ(i, next_action)
-                self.q_vec += self.index_to_state_vector[state] * q_val * self.q_scaling
+                self.q_vec = self.q_vec + self.index_to_state_vector[i] * q_val * self.q_scaling
 
             self.action_vec = self.index_to_action_vector[self.action_strings.index(action)]
             self.state_vec = self.index_to_state_vector[state]
