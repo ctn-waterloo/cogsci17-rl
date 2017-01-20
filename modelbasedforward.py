@@ -67,7 +67,7 @@ class ModelBasedForward:
         return 1
     
     def learn_nengo(self, state1, action, reward, state2, state2_level,
-                    reward_nengo):
+                    value_nengo):
 
         if state1 == 0:
             assert reward==0
@@ -81,9 +81,11 @@ class ModelBasedForward:
             # recompute the Q-values for each possible action based on 
             # current estimates of transition probabilities and rewards at stage 2
             for i, a in enumerate(self.actions):
-                self.q[(state1, a)] = reward_nengo[i] #THIS IS WRONG!!!!!!!!!!!!! #also put all ens in direct mode except learning one for now, to speed things up
+                self.q[(state1, a)] = value_nengo[i]
+                #print(a, self.q[(state1, a)])
+                #print(a, self.calc_value(state1, a, state2_level))
                 #self.q[(state1, a)] = reward_nengo #THIS IS WRONG!!!!!!!!!!!!! #also put all ens in direct mode except learning one for now, to speed things up
-
+            #print("")
         # "state1" is either state 1 or 2
         elif state2_level == 1: # we are currently learning the value of the second state (state 1 or 2)
             #qnext = self.calc_value(state1, action, state2_level)
@@ -109,6 +111,7 @@ class ModelBasedForward:
         #    return self.max_action(state)
 
         #noise = 0.05
+        #self.noise = 0.16
         q=[self.getQ(state,a)+random.normalvariate(0, self.noise) for a in self.actions]
         i=q.index(max(q))
         action=self.actions[i]

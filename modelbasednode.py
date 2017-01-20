@@ -216,6 +216,8 @@ class Agent():
         
         if self.lastAction != None:
             #print "  learning is happening"
+            # TEMP FIXME FIXME FIXME FIXME: trying without using anything from nengo as a check
+            #if self.ai.learn(self.lastBoardState, self.lastAction, self.pastReward, self.currBoardState, self.currLevel) == None:
             if self.ai.learn_nengo(self.lastBoardState, self.lastAction, self.pastReward, self.currBoardState, self.currLevel, value_nengo) == None:
                 return None
         # more bookkeeping
@@ -235,13 +237,17 @@ class Agent():
         #    self.value_nengo = (self.value_nengo*9./10. + value_nengo*1./10.) #xx6
         #self.value_nengo[0] = max(self.value_nengo[0], value_nengo[0])
         #self.value_nengo[1] = max(self.value_nengo[1], value_nengo[1]) #xx8 # this one is super terrible
-        self.value_nengo[0] += value_nengo[0]
-        self.value_nengo[1] += value_nengo[1] #x10
+        #self.value_nengo[0] += value_nengo[0]
+        #self.value_nengo[1] += value_nengo[1] #x10
+        if (t >= self.time_interval*(self.step+1)-0.07) and self.value_nengo[0] == 0:
+            self.value_nengo = value_nengo #x14
+        #self.value_nengo = value_nengo #xx0
+        #x28 is a version ignoring nengo
         #TODO: filter the reward value over the time interval to get a less noisy result
-        if t - self.last_t >= self.time_interval:
+        if t >= self.time_interval*(self.step+1):
             ##self.value_nengo /= (self.time_interval)*1000 #xx2
-            self.value_nengo[0] /= (self.time_interval)*1000 #x10
-            self.value_nengo[1] /= (self.time_interval)*1000 #x10
+            #self.value_nengo[0] /= (self.time_interval)*1000 #x10
+            #self.value_nengo[1] /= (self.time_interval)*1000 #x10
             self.oneStep(self.value_nengo)
             action = self.lastAction
             state = self.getCurrBoardState()

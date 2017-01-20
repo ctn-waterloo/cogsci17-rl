@@ -107,7 +107,8 @@ neuron_type=nengo.Direct()
 model = nengo.Network('RL P-learning', seed=13)
 #model.config[nengo.Ensemble].neuron_type = nengo.Direct()
 with model:
-
+    cfg = nengo.Config(nengo.Ensemble)
+    cfg[nengo.Ensemble].neuron_type = nengo.Direct()
     # Model of the external environment
     # Input: action semantic pointer
     # Output: current state semantic pointer
@@ -118,8 +119,9 @@ with model:
     model.state = spa.State(DIM, vocab=vocab)
     model.action = spa.State(DIM, vocab=vocab)
     #model.probability = spa.State(DIM, vocab=vocab)
-    model.probability_left = spa.State(DIM, vocab=vocab)
-    model.probability_right = spa.State(DIM, vocab=vocab)
+    with cfg:
+        model.probability_left = spa.State(DIM, vocab=vocab)
+        model.probability_right = spa.State(DIM, vocab=vocab)
     model.state_ensemble = nengo.Ensemble(n_neurons=DIM*50,dimensions=DIM)
     
     model.assoc_mem_left = spa.AssociativeMemory(input_vocab=vocab,
@@ -148,9 +150,11 @@ with model:
     
     # Scalar reward value from the dot product of P and Q
     model.value = nengo.Ensemble(200, 2, neuron_type=neuron_type)
+    
 
-    model.prod_left = nengo.networks.Product(n_neurons=15*DIM, dimensions=DIM)
-    model.prod_right = nengo.networks.Product(n_neurons=15*DIM, dimensions=DIM)
+    with cfg:
+        model.prod_left = nengo.networks.Product(n_neurons=50*DIM, dimensions=DIM)
+        model.prod_right = nengo.networks.Product(n_neurons=50*DIM, dimensions=DIM)
 
     nengo.Connection(model.probability_left.output, model.prod_left.A)
     nengo.Connection(model.env[DIM*2:], model.prod_left.B)

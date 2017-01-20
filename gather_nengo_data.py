@@ -35,6 +35,7 @@ if len(sys.argv) == 2:
     num_runs = int(sys.argv[1])
 
 outfile_name = 'data/out_nengo_r{0}_s{1}_d{2}_p{3}.txt'.format(num_runs, num_steps, direct, p_learning)
+data_file_name = 'data/tmp_data_nengo_r{0}_s{1}_d{2}_p{3}.txt'.format(num_runs, num_steps, direct, p_learning)
 with open(outfile_name, 'w+') as outfile:
 
     for i in range(num_runs):
@@ -44,9 +45,12 @@ with open(outfile_name, 'w+') as outfile:
 
         sim = nengo.Simulator(model)
         sim.run(num_steps*.1)
-        temp_str = agent.result_string
+        temp_str_list = agent.result_string
 
 
         calculator = CalcStayProb()
-        calculator.doItAllString(temp_str, outfile)
+        calculator.doItAllString(temp_str_list, outfile)
+
+with open(data_file_name, 'w+') as data_file:
+    data_file.write('\n'.join(temp_str_list))
 print(outfile_name)
