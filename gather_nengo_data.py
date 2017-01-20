@@ -39,12 +39,15 @@ data_file_name = 'data/tmp_data_nengo_r{0}_s{1}_d{2}_p{3}.txt'.format(num_runs, 
 with open(outfile_name, 'w+') as outfile:
 
     for i in range(num_runs):
-        print('{0}/{1} Runs'.format(i,num_runs))
+        print('{0}/{1} Runs'.format(i+1,num_runs))
 
         model, agent = get_model(direct=direct, p_learning=p_learning)
 
         sim = nengo.Simulator(model)
-        sim.run(num_steps*.1)
+        if p_learning: # The current version of p_learning needs to run through twice for each step
+            sim.run(num_steps*2*.1)
+        else:
+            sim.run(num_steps*.1)
         temp_str_list = agent.result_string
 
 
