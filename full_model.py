@@ -1,10 +1,12 @@
 # Learning the transition probabilities with the PES rule
 
+# Uses a modified version of the Agent that takes in one 'value' at a time
+
 import nengo
 from nengo import spa
 import numpy as np
 from environment import Environment
-from modelbasednode import Agent
+from modelbasednode import Agent, AgentSplit
 #import nengolib
 from nengolib.signal import z
 import scipy
@@ -53,6 +55,47 @@ class AreaIntercepts(nengo.dists.Distribution):
             s[i] = self.transform(s[i])
         return s
 
+def selected_error(t, x):
+    error = x[:DIM]
+    action1 = x[DIM:DIM*2]
+    action2 = x[DIM*2:]
+
+    res = np.zeros(DIM)
+
+    action_index1 = find_closest_vector(action1, index_to_action_vector)
+    action_index2 = find_closest_vector(action2, index_to_action_vector)
+
+    if action_index1 == action_index2:
+        return error
+    else:
+        return res
+
+# takes a state index and returns the corresponding vector for the semantic pointer
+index_to_state_vector = np.zeros((len(states), DIM))
+
+# takes an action index and returns the corresponding vector for the semantic pointer
+index_to_action_vector = np.zeros((len(actions), DIM))
+
+# Fill in mapping data structures based on the vocab given
+for i, vk in enumerate(vocab.keys):
+    if vk in actions:
+        index_to_action_vector[actions.index(vk)] = vocab.vectors[i]
+
+    if vk in states:
+        index_to_state_vector[states.index(vk)] = vocab.vectors[i]
+
+def find_closest_vector(vec, index_to_vector):
+    # Find the dot product with all other vectors
+    distance = 0
+    best_index = 0
+    for i, v in enumerate(index_to_vector):
+        d = np.dot(vec, v)
+        if d > distance:
+            distance = d
+            best_index = i
+
+    return best_index
+
 model = nengo.Network('RL P-learning', seed=13)
 with model:
 
@@ -60,12 +103,20 @@ with model:
     # Input: action semantic pointer
     # Output: current state semantic pointer
     #model.env = nengo.Node(Environment(vocab=vocab, time_interval=time_interval), size_in=DIM, size_out=DIM)
-    model.env = nengo.Node(Agent(vocab=vocab, time_interval=time_interval),
-                           size_in=1, size_out=DIM*3)
+    #model.env = nengo.Node(Agent(vocab=vocab, time_interval=time_interval),
+    #                       size_in=2, size_out=DIM*3)
+    model.env = nengo.Node(AgentSplit(vocab=vocab, time_interval=time_interval),
+                           size_in=1, size_out=DIM*4)
 
     model.state = spa.State(DIM, vocab=vocab)
     model.action = spa.State(DIM, vocab=vocab)
     model.probability = spa.State(DIM, vocab=vocab)
+
+    # The action that is currently being used along with the state to calculate value
+    # If this matches with the actual action being taken, learning will happen (on the next step after a delay)
+    model.calculating_action = spa.State(DIM, vocab=vocab)
+    nengo.Connection(model.env[DIM*3:DIM*4], model.calculating_action.input)
+
 
     # State and selected action in one ensemble
     model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=AreaIntercepts(dimensions=DIM*2))
@@ -92,7 +143,7 @@ with model:
 
     nengo.Connection(model.probability.output, model.prod.A)
     #nengo.Connection(model.q.output, model.prod.B)
-    nengo.Connection(model.env[DIM*2:], model.prod.B)
+    nengo.Connection(model.env[DIM*2:DIM*3], model.prod.B)
 
     nengo.Connection(model.prod.output, model.value,
                      transform=np.ones((1,DIM)))
@@ -102,7 +153,13 @@ with model:
 
     #TODO: need to set up error signal and handle timing
     model.error = spa.State(DIM, vocab=vocab)
-    nengo.Connection(model.error.output, conn.learning_rule)
+    ##nengo.Connection(model.error.output, conn.learning_rule)
+    
+    model.error_node = nengo.Node(selected_error,size_in=DIM*3, size_out=DIM)
+    nengo.Connection(model.error.output, model.error_node[:DIM])
+    nengo.Connection(model.action.output, model.error_node[DIM:DIM*2])
+    nengo.Connection(model.calculating_action.output, model.error_node[DIM*2:DIM*3])
+    nengo.Connection(model.error_node, conn.learning_rule)
 
     #TODO: figure out which way the sign goes, one should be negative, and the other positive
     #TODO: figure out how to delay by one "time-step" correctly
@@ -118,4 +175,4 @@ with model:
 
     nengo.Connection(model.value, model.env)
     nengo.Connection(model.env[:DIM], model.action.input) # Purely for plotting
-    nengo.Connection(model.env[DIM*2:], model.q.input) # Purely for plotting
+    nengo.Connection(model.env[DIM*2:DIM*3], model.q.input) # Purely for plotting

@@ -239,6 +239,7 @@ class Agent():
         #self.value_nengo[1] = max(self.value_nengo[1], value_nengo[1]) #xx8 # this one is super terrible
         #self.value_nengo[0] += value_nengo[0]
         #self.value_nengo[1] += value_nengo[1] #x10
+        # This one works!!! It's because of delays with synapses and associative memories
         if (t >= self.time_interval*(self.step+1)-0.07) and self.value_nengo[0] == 0:
             self.value_nengo = value_nengo #x14
         #self.value_nengo = value_nengo #xx0
@@ -280,3 +281,54 @@ class Agent():
             self.value_nengo = np.zeros(2)
         
         return np.concatenate((self.action_vec, self.state_vec, self.q_vec))
+
+
+# Two iterations of nengo for every step, one for each possible action in the state
+class AgentSplit(Agent):
+
+    def __call__(self, t, value_nengo):
+
+        if (t >= self.time_interval*(self.step+1)-0.07) and self.value_nengo[1] == 0:
+            if self.step % 2 == 0:
+                self.value_nengo[0] = value_nengo #x14
+            elif self.step % 2 == 1:
+                self.value_nengo[1] = value_nengo #x14
+        
+        if t >= self.time_interval*(self.step+1):
+            
+            if self.step % 2 == 0:
+                self.oneStep(self.value_nengo)
+                action = self.lastAction
+                state = self.getCurrBoardState()
+                q = self.ai.getQ(state, action)
+                
+                self.q_vec = np.zeros((self.dim))
+                for i, s in enumerate(self.states):
+                    next_action = self.ai.max_action(i)
+                    q_val = self.ai.getQ(i, next_action)
+                    self.q_vec = self.q_vec + self.index_to_state_vector[i] * q_val * self.q_scaling
+
+                self.action_vec = self.index_to_action_vector[self.action_strings.index(action)]
+                self.state_vec = self.index_to_state_vector[state]
+
+                if self.step%4 == 0: # in stage 1
+                    self.firstStageChoice = self.getLastAction()
+                    self.secondStage = self.getCurrBoardState()
+                else: # in stage 2
+                    self.secondStageChoice = self.getLastAction()
+                    self.finalReward = self.getCurrReward()
+                    if self.outfile is not None:
+                        # Print results to a file
+                        print('{0} {1} {2} {3}'.format(self.firstStageChoice, self.secondStage, self.secondStageChoice, self.finalReward), file=self.outfile)
+                    else:
+                        self.result_string.append('{0} {1} {2} {3}'.format(self.firstStageChoice, self.secondStage, self.secondStageChoice, self.finalReward))
+                self.value_nengo = np.zeros(2)
+            self.step += 1
+
+        if self.step % 2 == 0:
+            action_vec = self.index_to_action_vector[0]
+        elif self.step % 2 == 1:
+            action_vec = self.index_to_action_vector[1]
+
+        #return np.concatenate((self.action_vec, self.state_vec, self.q_vec))
+        return np.concatenate((self.action_vec, self.state_vec, self.q_vec, action_vec))
