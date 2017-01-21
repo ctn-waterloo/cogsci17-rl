@@ -6,7 +6,7 @@ import numpy as np
 # Uses the Q-update strategy found in Daw et al. 2011 supplemental materials
 # Implements the Daw task without learning the transition probabilities 
 
-class Agent():
+class Agent(object):
     def __init__(self, vocab, time_interval, q_scaling=1, outfile=None, randomReward = True, case1 = 0.25, case2 = 0.5, case3 = 0.5, case4 = 0.75):
         state_dict = {1:[0], 2:[1, 2]}
         transition_dict = {(0, "left", 1):0.7,
