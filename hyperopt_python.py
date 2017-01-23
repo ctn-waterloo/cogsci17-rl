@@ -18,7 +18,7 @@ ideal = np.array([.774, .691, .697, .779])
 # These parameters should be chosen and not optimized
 num_runs = 40#100
 num_steps = 40000#40000
-max_evals = 500
+max_evals = 1200
 
 #def objective(alpha, noise):
 def objective(args):
@@ -57,7 +57,7 @@ def objective(args):
 
 # Load from a previous run if possible
 try:
-    trials = pickle.load(open('hyperopt_data2.', 'rb'))['trials']
+    trials = pickle.load(open('hyperopt_data.p', 'rb'))['trials']
     previous_evals = len(trials)
 except:
     trials = Trials()
