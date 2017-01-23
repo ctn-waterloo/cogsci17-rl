@@ -34,8 +34,11 @@ if len(sys.argv) == 3:
 if len(sys.argv) == 2:
     num_runs = int(sys.argv[1])
 
-outfile_name = 'data/out_nengo_r{0}_s{1}_d{2}_p{3}.txt'.format(num_runs, num_steps, direct, p_learning)
-data_file_name = 'data/tmp_data_nengo_r{0}_s{1}_d{2}_p{3}.txt'.format(num_runs, num_steps, direct, p_learning)
+# Day-Hour:Minute
+date_time_string = time.strftime("%d-%H:%M")
+
+outfile_name = 'data/out_nengo_r{0}_s{1}_d{2}_p{3}_{4}.txt'.format(num_runs, num_steps, direct, p_learning, date_time_string)
+data_file_name = 'data/tmp_data_nengo_r{0}_s{1}_d{2}_p{3}_{4}.txt'.format(num_runs, num_steps, direct, p_learning, date_time_string)
 with open(outfile_name, 'w+') as outfile:
 
     for i in range(num_runs):
