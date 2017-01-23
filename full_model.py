@@ -13,6 +13,8 @@ import scipy
 
 DIM = 5#64
 
+learning = False#True
+
 # Time between state transitions
 time_interval = 0.1#0.5
 
@@ -54,6 +56,23 @@ class AreaIntercepts(nengo.dists.Distribution):
         for i in range(len(s)):
             s[i] = self.transform(s[i])
         return s
+
+# The ideal function that should be learned
+def correct_mapping(x):
+    state = x[:DIM]
+    action = x[DIM:]
+
+    closest_state = find_closest_vector(state, index_to_state_vector)
+    closest_action = find_closest_vector(action, index_to_action_vector)
+
+    if closest_state == 0:
+        if closest_action == 0: # Left
+            return index_to_state_vector[1]*.7 + index_to_state_vector[2]*.3
+        elif closest_action == 1: # Right
+            return index_to_state_vector[1]*.3 + index_to_state_vector[2]*.7
+    else:
+        # Always return to state 0 at this point
+        return index_to_state_vector[0]
 
 def selected_error(t, x):
     error = x[:DIM]
@@ -97,6 +116,8 @@ def find_closest_vector(vec, index_to_vector):
     return best_index
 
 model = nengo.Network('RL P-learning', seed=13)
+if not learning:
+    model.config[nengo.Ensemble].neuron_type = nengo.Direct()
 with model:
 
     # Model of the external environment
@@ -124,11 +145,15 @@ with model:
     #model.cconv = nengo.networks.CircularConvolution(300, DIM)
 
     nengo.Connection(model.state.output, model.state_and_action[:DIM])
-    nengo.Connection(model.env[:DIM], model.state_and_action[DIM:])
-    conn = nengo.Connection(model.state_and_action, model.probability.input,
-                            function=lambda x: [0]*DIM,
-                            learning_rule_type=nengo.PES(pre_synapse=z**(-int(time_interval*1000))),
-                           )
+    nengo.Connection(model.env[DIM*3:DIM*4], model.state_and_action[DIM:])
+    ####nengo.Connection(model.env[:DIM], model.state_and_action[DIM:])
+    if learning:
+        conn = nengo.Connection(model.state_and_action, model.probability.input,
+                                function=lambda x: [0]*DIM,
+                                learning_rule_type=nengo.PES(pre_synapse=z**(-int(time_interval*1000))),
+                               )
+    else:
+        nengo.Connection(model.state_and_action, model.probability.input, function=correct_mapping)
 
 
     # Semantic pointer for the Q values of each state
@@ -159,7 +184,8 @@ with model:
     nengo.Connection(model.error.output, model.error_node[:DIM])
     nengo.Connection(model.action.output, model.error_node[DIM:DIM*2])
     nengo.Connection(model.calculating_action.output, model.error_node[DIM*2:DIM*3])
-    nengo.Connection(model.error_node, conn.learning_rule)
+    if learning:
+        nengo.Connection(model.error_node, conn.learning_rule)
 
     #TODO: figure out which way the sign goes, one should be negative, and the other positive
     #TODO: figure out how to delay by one "time-step" correctly
