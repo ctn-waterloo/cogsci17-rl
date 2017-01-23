@@ -8,13 +8,17 @@ from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 import numpy as np
 import cPickle as pickle
 
+import sys
+from IPython.core import ultratb
+sys.excepthook = ultratb.FormattedTB(mode='Verbose', color_scheme='Linux', call_pdb=1)
+
 # 'Ideal' values for the four bars
 ideal = np.array([.774, .691, .697, .779])
 
 # These parameters should be chosen and not optimized
 num_runs = 40#100
 num_steps = 40000#40000
-max_evals = 300
+max_evals = 500
 
 #def objective(alpha, noise):
 def objective(args):
@@ -51,13 +55,20 @@ def objective(args):
 
     return {'loss': np.sqrt(np.mean((avg - ideal)**2)), 'status':STATUS_OK}
 
-trials = Trials()
+# Load from a previous run if possible
+try:
+    trials = pickle.load(open('hyperopt_data2.', 'rb'))['trials']
+    previous_evals = len(trials)
+except:
+    trials = Trials()
+    previous_evals = 0
+
 #TODO: try different distributions
 space = {'alpha':hp.uniform('alpha', 0, 1),
          'noise':hp.uniform('noise', 0, 1)}
 
-for i in range(max_evals):
-    print("Eval {0}/{1}".format(i+1, max_evals))
+for i in range(previous_evals, max_evals + previous_evals):
+    print("Eval {0}/{1}".format(i+1, max_evals + previous_evals))
     best = fmin(objective,
                 space=space,
                 algo=tpe.suggest,
