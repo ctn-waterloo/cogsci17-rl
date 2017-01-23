@@ -26,7 +26,7 @@ for alpha in [0.3]:#[0.01,0.05, 0.1, .2, .3]:
 
                 # w+ makes sure this file gets overwritten each time
                 with open(tf_name, 'w+') as tf:
-                    agent = Agent()
+                    agent = Agent(alpha=alpha, noise=noise)
                     temp_str = []
 
                     #print "firstStageChoice secondStage secondStageChoice finalReward"

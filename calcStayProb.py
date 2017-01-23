@@ -232,13 +232,15 @@ class CalcStayProb():
         # everything probably worked!
         return 0
 
-    def calcStayProb(self, outfile=None):
+    def calcStayProb(self, outfile=None, return_value=False):
         stay_tcr = self.tcr_s/self.tcr
         stay_trr = self.trr_s/self.trr
         stay_tcu = self.tcu_s/self.tcu
         stay_tru = self.tru_s/self.tru
         if outfile is not None:
             print('{0} {1} {2} {3}'.format(stay_tcr, stay_trr, stay_tcu, stay_tru), file=outfile)
+        elif return_value:
+            return (stay_tcr, stay_trr, stay_tcu, stay_tru)
         else:
             print(stay_tcr, stay_trr, stay_tcu, stay_tru)
 
@@ -252,12 +254,15 @@ class CalcStayProb():
         else:
             print(success)
     
-    def doItAllString(self, strings, outfile=None):
+    def doItAllString(self, strings, outfile=None, return_value=False):
         # maybe some other stuff here to catch exceptions
         success = self.countStrings(strings)
         if success == 0:
             # good
-            self.calcStayProb(outfile=outfile)
+            if return_value:
+                return self.calcStayProb(outfile=outfile, return_value=True)
+            else:
+                self.calcStayProb(outfile=outfile)
         else:
             print(success)
 

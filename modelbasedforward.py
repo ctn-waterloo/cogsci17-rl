@@ -82,6 +82,7 @@ class ModelBasedForward:
             # current estimates of transition probabilities and rewards at stage 2
             for i, a in enumerate(self.actions):
                 self.q[(state1, a)] = value_nengo[i]
+                #self.q[(state1, a)] = self.calc_value(state1, a, state2_level)
                 #print(a, self.q[(state1, a)])
                 #print(a, self.calc_value(state1, a, state2_level))
                 #self.q[(state1, a)] = reward_nengo #THIS IS WRONG!!!!!!!!!!!!! #also put all ens in direct mode except learning one for now, to speed things up
