@@ -13,7 +13,7 @@ import scipy
 
 DIM = 5#64
 
-learning = False#True
+learning = True
 
 # Time between state transitions
 time_interval = 0.1#0.5
@@ -150,7 +150,7 @@ with model:
     if learning:
         conn = nengo.Connection(model.state_and_action, model.probability.input,
                                 function=lambda x: [0]*DIM,
-                                learning_rule_type=nengo.PES(pre_synapse=z**(-int(time_interval*1000))),
+                                learning_rule_type=nengo.PES(pre_synapse=z**(-int(time_interval*2*1000))),
                                )
     else:
         nengo.Connection(model.state_and_action, model.probability.input, function=correct_mapping)
@@ -191,13 +191,13 @@ with model:
     #TODO: figure out how to delay by one "time-step" correctly
     nengo.Connection(model.state.output, model.error.input, transform=-1)
     nengo.Connection(model.probability.output, model.error.input, transform=1,
-                     synapse=z**(-int(time_interval*1000)))
+                     synapse=z**(-int(time_interval*2*1000)))
                      #synapse=nengolib.synapses.PureDelay(500)) #500ms delay
 
     # Testing the delay synapse to make sure it works as expected
     model.state_delay_test = spa.State(DIM, vocab=vocab)
     nengo.Connection(model.state.output, model.state_delay_test.input,
-                     synapse=z**(-int(time_interval*1000)))
+                     synapse=z**(-int(time_interval*2*1000)))
 
     nengo.Connection(model.value, model.env)
     nengo.Connection(model.env[:DIM], model.action.input) # Purely for plotting

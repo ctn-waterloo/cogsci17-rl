@@ -105,6 +105,22 @@ def find_closest_vector(vec, index_to_vector):
 
     return best_index
 
+# The ideal function that should be learned
+def correct_mapping(x):
+    state = x[:DIM]
+    action = x[DIM:]
+
+    closest_state = find_closest_vector(state, index_to_state_vector)
+    closest_action = find_closest_vector(action, index_to_action_vector)
+
+    if closest_state == 0:
+        if closest_action == 0: # Left
+            return index_to_state_vector[1]*.7 + index_to_state_vector[2]*.3
+        elif closest_action == 1: # Right
+            return index_to_state_vector[1]*.3 + index_to_state_vector[2]*.7
+    else:
+        # Always return to state 0 at this point
+        return index_to_state_vector[0]
 
 
 def get_model(q_scaling=1, direct=False, p_learning=True):
@@ -114,8 +130,10 @@ def get_model(q_scaling=1, direct=False, p_learning=True):
     #if direct:
     #    model.config[nengo.Ensemble].neuron_type = nengo.Direct()
     if direct:
+        learning = True#False #TEMP FIXME
         neuron_type = nengo.Direct()
     else:
+        learning = True #TEMP FIXME
         neuron_type = nengo.LIF()
 
     if p_learning:
@@ -219,10 +237,13 @@ def get_model(q_scaling=1, direct=False, p_learning=True):
 
             nengo.Connection(model.state.output, model.state_and_action[:DIM])
             nengo.Connection(model.env[DIM*3:DIM*4], model.state_and_action[DIM:])
-            conn = nengo.Connection(model.state_and_action, model.probability.input,
-                                    function=lambda x: [0]*DIM,
-                                    learning_rule_type=nengo.PES(pre_synapse=z**(-int(time_interval*1000))),
-                                   )
+            if learning:
+                conn = nengo.Connection(model.state_and_action, model.probability.input,
+                                        function=lambda x: [0]*DIM,
+                                        learning_rule_type=nengo.PES(pre_synapse=z**(-int(time_interval*2*1000))),
+                                       )
+            else:
+                nengo.Connection(model.state_and_action, model.probability.input, function=correct_mapping)
 
             # Scalar value from the dot product of P and Q
             model.value = nengo.Ensemble(100, 1, neuron_type=nengo.Direct())
@@ -252,23 +273,24 @@ def get_model(q_scaling=1, direct=False, p_learning=True):
                 nengo.Connection(model.error.output, model.error_node[:DIM])
                 nengo.Connection(model.action.output, model.error_node[DIM:DIM*2])
                 nengo.Connection(model.calculating_action.output, model.error_node[DIM*2:DIM*3])
-                nengo.Connection(model.error_node, conn.learning_rule)
+                if learning:
+                    nengo.Connection(model.error_node, conn.learning_rule)
 
                 #TODO: figure out which way the sign goes, one should be negative, and the other positive
                 #TODO: figure out how to delay by one "time-step" correctly
                 nengo.Connection(model.state.output, model.error.input, transform=-1)
                 nengo.Connection(model.probability.output, model.error.input, transform=1,
-                                 synapse=z**(-int(time_interval*1000)))
+                                 synapse=z**(-int(time_interval*2*1000)))
                                  #synapse=nengolib.synapses.PureDelay(500)) #500ms delay
 
                 # Testing the delay synapse to make sure it works as expected
                 model.state_delay_test = spa.State(DIM, vocab=vocab)
                 nengo.Connection(model.state.output, model.state_delay_test.input,
-                                 synapse=z**(-int(time_interval*1000)))
+                                 synapse=z**(-int(time_interval*2*1000)))
 
                 nengo.Connection(model.value, model.env)
-                nengo.Connection(model.env[:DIM], model.action.input) # Purely for plotting
-                nengo.Connection(model.env[DIM*2:DIM*3], model.q.input) # Purely for plotting
+                #nengo.Connection(model.env[:DIM], model.action.input) # Purely for plotting
+                #nengo.Connection(model.env[DIM*2:DIM*3], model.q.input) # Purely for plotting
         return model, agent
     else:
         if direct:
