@@ -20,7 +20,7 @@ states = ['S0', 'S1', 'S2']
 actions = ['L', 'R']
 
 n_sa_neurons = DIM*2*15 # number of neurons in the state+action population
-n_prod_neurons = DIM*15 # number of neurons in the product network
+n_prod_neurons = DIM*50 # number of neurons in the product network
 
 # Set all vectors to be orthogonal for now (easy debugging)
 vocab = spa.Vocabulary(dimensions=DIM, randomize=False)
@@ -98,6 +98,8 @@ neuron_type=nengo.Direct()
 model = nengo.Network('RL P-learning', seed=13)
 with model:
 
+    cfg = nengo.Config(nengo.Ensemble)
+    cfg[nengo.Ensemble].neuron_type = nengo.Direct()
     # Model of the external environment
     # Input: action semantic pointer
     # Output: current state semantic pointer
@@ -113,6 +115,11 @@ with model:
     model.combined_probability = nengo.Ensemble(n_neurons=DIM*2*50,
                                                 dimensions=DIM*2,
                                                )#neuron_type=neuron_type)
+    # Initialize transition probability estimates to 50% each
+    #init_node = nengo.Node(lambda t: 0 if t < 2.5 else 0)
+    #nengo.Connection(init_node, model.probability_left.input[:3], transform=[[1],[1],[1]]) # super hacky for now
+    #nengo.Connection(init_node, model.probability_right.input[:3], transform=[[1],[1],[1]]) # super hacky for now
+    
     model.state_ensemble = nengo.Ensemble(n_neurons=DIM*50,dimensions=DIM)
     
 
