@@ -127,15 +127,13 @@ def get_model(q_scaling=1, direct=False, p_learning=True):
 
 
     model = nengo.Network('RL P-learning', seed=13)
-    cfg = nengo.Config(nengo.Ensemble)
-    if direct:
-        cfg[nengo.Ensemble].neuron_type = nengo.Direct()
-        cfg[nengo.Connection].synapse = None
 
     with model:
+        cfg = nengo.Config(nengo.Ensemble, nengo.Connection)
+        if direct:
+            cfg[nengo.Ensemble].neuron_type = nengo.Direct()
+            cfg[nengo.Connection].synapse = None
 
-        cfg = nengo.Config(nengo.Ensemble)
-        cfg[nengo.Ensemble].neuron_type = neuron_type
         # Model of the external environment
         agent = AgentSplit(vocab=vocab, time_interval=time_interval,
                       q_scaling=q_scaling)
