@@ -13,7 +13,7 @@ import scipy
 
 DIM = 5#64
 
-learning = True
+learning = False#True
 
 # Time between state transitions
 time_interval = 0.1#0.5
@@ -118,6 +118,7 @@ def find_closest_vector(vec, index_to_vector):
 model = nengo.Network('RL P-learning', seed=13)
 if not learning:
     model.config[nengo.Ensemble].neuron_type = nengo.Direct()
+    model.config[nengo.Connection].synapse = None
 with model:
 
     # Model of the external environment
@@ -199,6 +200,7 @@ with model:
     nengo.Connection(model.state.output, model.state_delay_test.input,
                      synapse=z**(-int(time_interval*2*1000)))
 
-    nengo.Connection(model.value, model.env)
+    #nengo.Connection(model.value, model.env)
+    nengo.Connection(model.value, model.env, synapse=0)
     nengo.Connection(model.env[:DIM], model.action.input) # Purely for plotting
     nengo.Connection(model.env[DIM*2:DIM*3], model.q.input) # Purely for plotting
