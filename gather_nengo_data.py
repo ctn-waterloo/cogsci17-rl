@@ -2,7 +2,8 @@
 
 from __future__ import print_function  # Only needed for Python 2
 #from full_model_function import get_model
-from fixed_model_function import get_model
+#from fixed_model_function import get_model
+from complete_model_function import get_model
 from calcStayProb import CalcStayProb
 import sys
 import time
@@ -47,10 +48,8 @@ with open(outfile_name, 'w+') as outfile:
         model, agent = get_model(direct=direct, p_learning=p_learning)
 
         sim = nengo.Simulator(model)
-        if p_learning: # The current version of p_learning needs to run through twice for each step
-            sim.run(num_steps*2*.1)
-        else:
-            sim.run(num_steps*.1)
+        # The current version of p_learning needs to run through twice for each step
+        sim.run(num_steps*2*.1)
         temp_str_list = agent.result_string
 
 
