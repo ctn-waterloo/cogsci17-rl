@@ -127,11 +127,9 @@ def get_model(q_scaling=1, direct=False, p_learning=True):
 
 
     model = nengo.Network('RL P-learning', seed=13)
-    #if direct:
-    #    model.config[nengo.Ensemble].neuron_type = nengo.Direct()
     cfg = nengo.Config(nengo.Ensemble)
     if direct:
-        cfg[nengo.Ensemble].neuron_type = neuron_type
+        cfg[nengo.Ensemble].neuron_type = nengo.Direct()
         cfg[nengo.Connection].synapse = None
 
     with model:
