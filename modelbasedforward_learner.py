@@ -109,6 +109,35 @@ class ModelBasedForward:
          
         return 1
 
+    def learn_nengo(self, state1, action, reward, state2, state2_level,
+                    value_nengo):
+        self.updateTransitionProbabilities(state1, action, state2, state2_level)
+        if state1 == 0:
+            assert reward==0
+
+        if state2 not in self.states[state2_level]:
+            print "State " + str(state2) + " is not in level " + str(state2_level)
+            return None
+        
+        # "state1" is state 0
+        if state2_level == 2: # we are currently learning the value of the first stage (state 0)
+            # recompute the Q-values for each possible action based on 
+            # current estimates of transition probabilities and rewards at stage 2
+            for i, a in enumerate(self.actions):
+                self.q[(state1, a)] = value_nengo[i]
+                #self.q[(state1, a)] = self.calc_value(state1, a, state2_level)
+                #print(a, self.q[(state1, a)])
+                #print(a, self.calc_value(state1, a, state2_level))
+                #print(a, state1)
+                #self.q[(state1, a)] = reward_nengo #THIS IS WRONG!!!!!!!!!!!!! #also put all ens in direct mode except learning one for now, to speed things up
+            #print("")
+        # "state1" is either state 1 or 2
+        elif state2_level == 1: # we are currently learning the value of the second state (state 1 or 2)
+            #qnext = self.calc_value(state1, action, state2_level)
+            self.learnQ(state1, action, reward)
+         
+        return 1
+
     # this will be replaced by the neural part eventually
     # state2_level could possibly be replaced by just all the states
     def calc_value(self, state1, action, state2_level):
