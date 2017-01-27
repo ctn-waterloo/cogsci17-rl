@@ -122,8 +122,26 @@ def correct_mapping(x):
         # Always return to state 0 at this point
         return index_to_state_vector[0]
 
+def initial_mapping(x):
+    state = x[:DIM]
+    action = x[DIM:]
 
-def get_model(q_scaling=1, direct=False, p_learning=True):
+    closest_state = find_closest_vector(state, index_to_state_vector)
+    closest_action = find_closest_vector(action, index_to_action_vector)
+
+    if closest_state == 0:
+        if closest_action == 0: # Left
+            return index_to_state_vector[1]*.5 + index_to_state_vector[2]*.5
+        elif closest_action == 1: # Right
+            return index_to_state_vector[1]*.5 + index_to_state_vector[2]*.5
+    else:
+        # Always return to state 0 at this point
+        return index_to_state_vector[0]
+
+
+
+def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
+              learning_rate=1e-4):
 
 
     model = nengo.Network('RL P-learning', seed=13)
@@ -155,9 +173,14 @@ def get_model(q_scaling=1, direct=False, p_learning=True):
         if p_learning:
             # State and selected action in one ensemble
             model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=AreaIntercepts(dimensions=DIM*2))
+            if initialized:
+                function = correct_mapping
+            else:
+                function= initial_mapping
             conn = nengo.Connection(model.state_and_action, model.probability.input,
-                                    function=lambda x: [0]*DIM,
-                                    learning_rule_type=nengo.PES(pre_synapse=z**(-int(time_interval*2*1000))),
+                                    function=function,
+                                    learning_rule_type=nengo.PES(pre_synapse=z**(-int(time_interval*2*1000)),
+                                                                 learning_rate=learning_rate),
                                    )
         else:
             with cfg:

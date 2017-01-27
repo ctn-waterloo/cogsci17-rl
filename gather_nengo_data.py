@@ -19,7 +19,25 @@ direct = False#True
 # If the transition probabilities should be learned
 p_learning = False
 
+# If the transition probabilities of learning start at the correct value rather than 0
+initialized = False
+
+learning_rate = 1e-4
+
 # Read option parameters from the command line
+if len(sys.argv) == 7:
+    num_runs = int(sys.argv[1])
+    num_steps = int(sys.argv[2])
+    direct = sys.argv[3] == 'True'
+    p_learning = sys.argv[4] == 'True'
+    initialized = sys.argv[5] == 'True'
+    learning_rate = float(sys.argv[6])
+if len(sys.argv) == 6:
+    num_runs = int(sys.argv[1])
+    num_steps = int(sys.argv[2])
+    direct = sys.argv[3] == 'True'
+    p_learning = sys.argv[4] == 'True'
+    initialized = sys.argv[5] == 'True'
 if len(sys.argv) == 5:
     num_runs = int(sys.argv[1])
     num_steps = int(sys.argv[2])
@@ -38,14 +56,14 @@ if len(sys.argv) == 2:
 # Day-Hour:Minute
 date_time_string = time.strftime("%d-%H:%M")
 
-outfile_name = 'data/out_nengo_r{0}_s{1}_d{2}_p{3}_{4}.txt'.format(num_runs, num_steps, direct, p_learning, date_time_string)
-data_file_name = 'data/tmp_data_nengo_r{0}_s{1}_d{2}_p{3}_{4}.txt'.format(num_runs, num_steps, direct, p_learning, date_time_string)
+outfile_name = 'data/out_nengo_r{0}_s{1}_d{2}_p{3}_i{4}_l{5}_{6}.txt'.format(num_runs, num_steps, direct, p_learning, initialized, learning_rate, date_time_string)
+data_file_name = 'data/tmp_data_nengo_r{0}_s{1}_d{2}_p{3}_i{4}_l{5}_{4}.txt'.format(num_runs, num_steps, direct, p_learning, initialized, learning_rate, date_time_string)
 with open(outfile_name, 'w+') as outfile:
 
     for i in range(num_runs):
         print('{0}/{1} Runs'.format(i+1,num_runs))
 
-        model, agent = get_model(direct=direct, p_learning=p_learning)
+        model, agent = get_model(direct=direct, p_learning=p_learning, initialized=initialized, learning_rate=learning_rate)
 
         sim = nengo.Simulator(model)
         # The current version of p_learning needs to run through twice for each step
