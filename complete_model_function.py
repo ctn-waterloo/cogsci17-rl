@@ -212,7 +212,7 @@ def get_model(q_scaling=1, direct=False, p_learning=True):
                              synapse=z**(-int(time_interval*2*1000)))
 
             if direct:
-                nengo.Connection(model.value, model.env, synapse=0)
+                nengo.Connection(model.value, model.env, synapse=0.025)
             else:
-                nengo.Connection(model.value, model.env)
+                nengo.Connection(model.value, model.env, synapse=0.025)
     return model, agent
