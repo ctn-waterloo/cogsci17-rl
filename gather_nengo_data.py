@@ -8,6 +8,7 @@ from calcStayProb import CalcStayProb
 import sys
 import time
 import nengo
+import os
 
 num_runs = 3#100
 num_steps = 40#40000
@@ -77,11 +78,13 @@ def l(b):
 # Day-Hour:Minute
 date_time_string = time.strftime("%d-%H:%M")
 
-suffix = 'nengo_r{0}_s{1}_d{2}_p{3}_i{4}_ps{5}_int{6}_l{7}_{8}.txt'.format(num_runs, num_steps, l(direct), l(p_learning), l(initialized), 
+suffix = 'nengo_r{0}_s{1}_d{2}_p{3}_i{4}_ps{5}_int{6}_l{7}_{8}'.format(num_runs, num_steps, l(direct), l(p_learning), l(initialized), 
                                                                            l(forced_prob), l(default_intercepts), learning_rate, date_time_string)
 
-outfile_name = 'data/out_' + suffix
-data_file_name = 'data/tmp_data_' + suffix
+outfile_name = 'data/out_' + suffix + '.txt'
+raw_data_dir = 'data/raw_data_' + suffix
+if not os.path.exists(raw_data_dir):
+        os.makedirs(raw_data_dir)
 with open(outfile_name, 'w+') as outfile:
 
     for i in range(num_runs):
@@ -99,6 +102,8 @@ with open(outfile_name, 'w+') as outfile:
         calculator = CalcStayProb()
         calculator.doItAllString(temp_str_list, outfile)
 
-with open(data_file_name, 'w+') as data_file:
-    data_file.write('\n'.join(temp_str_list))
+        # Saving data from each individual run to a separate file within a folder
+        data_file_name = 'data/raw_data_' + suffix + '/' + str(i+1) + '.txt'
+        with open(data_file_name, 'w+') as data_file:
+            data_file.write('\n'.join(temp_str_list))
 print(outfile_name)
