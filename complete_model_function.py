@@ -138,10 +138,23 @@ def initial_mapping(x):
         # Always return to state 0 at this point
         return index_to_state_vector[0]
 
+#FIXME: this is currently hardcoded for only 5 dimensions
+def make_probability(t, x):
+    s0 = min(max(0, x[0]),1)
+    s1 = min(max(0, x[1]),1)
+    s2 = min(max(0, x[2]),1)
+    #total = np.sum(x[0], x[1], x[2])
+    total = s0 + s1 + s2
+    
+    if total > 0:
+        return (s0/total, s1/total, s2/total, x[3], x[4])
+    else:
+        return x
+
 
 
 def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
-              learning_rate=1e-4):
+              learning_rate=1e-4, forced_prob=False, default_intercepts=True):
 
 
     model = nengo.Network('RL P-learning', seed=13)
@@ -172,7 +185,10 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
 
         if p_learning:
             # State and selected action in one ensemble
-            model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=AreaIntercepts(dimensions=DIM*2))
+            if default_intercepts:
+                model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2)
+            else:
+                model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=AreaIntercepts(dimensions=DIM*2))
             if initialized:
                 function = correct_mapping
             else:
@@ -201,7 +217,13 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
 
             model.prod = nengo.networks.Product(n_neurons=n_prod_neurons, dimensions=DIM)
 
-            nengo.Connection(model.probability.output, model.prod.A)
+            if forced_prob:
+                normalized_prob = nengo.Node(make_probability, size_in=DIM, size_out=DIM)
+                nengo.Connection(model.probability.output, normalized_prob, synapse=None)
+                nengo.Connection(normalized_prob, model.prod.A, synapse=None)
+
+            else:
+                nengo.Connection(model.probability.output, model.prod.A)
             #nengo.Connection(model.q.output, model.prod.B)
             nengo.Connection(model.env[DIM*2:DIM*3], model.prod.B)
 

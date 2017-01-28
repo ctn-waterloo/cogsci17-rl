@@ -1,5 +1,6 @@
 from __future__ import print_function  # Only needed for Python 2
 import random
+#import modelbasedforward_learner as mb
 import modelbasedforward as mb
 import numpy as np
 
@@ -18,6 +19,7 @@ class Agent(object):
                             (2, "left", 0):1.0,
                             (2, "right", 0):1.0}
         self.ai = mb.ModelBasedForward(actions=["left", "right"], states = state_dict, transitions=transition_dict)
+        #self.ai = mb.ModelBasedForward(actions=["left", "right"], states = state_dict)
         self.lastAction = None
         self.lastState = None
         self.numLevels = len(state_dict)
@@ -94,6 +96,8 @@ class Agent(object):
             if vk in self.states:
                 self.state_to_index[vk] = self.states.index(vk)
                 self.index_to_state_vector[self.states.index(vk)] = self.vocab.vectors[i]
+        
+        self.state_vec = self.index_to_state_vector[0]
 
     def initializeReward(self):
         rewardProb = 0
