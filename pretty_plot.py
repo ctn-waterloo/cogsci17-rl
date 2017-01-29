@@ -5,7 +5,7 @@ import numpy as np
 import sys
 
 datafilename = 'data.txt'
-multi_plot = False # If plots of the comparison data are to be made as well
+multi_plot = True # If plots of the comparison data are to be made as well
 if len(sys.argv) == 2:
     datafilename = sys.argv[1]
 if len(sys.argv) == 3:
