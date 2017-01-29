@@ -149,7 +149,7 @@ def find_closest_vector(vec, index_to_vector):
             best_index = i
 
     return best_index
-
+intercept_dist=0
 model = nengo.Network('RL P-learning', seed=13)
 with model:
     cfg = nengo.Config(nengo.Ensemble, nengo.Connection)
@@ -161,8 +161,8 @@ with model:
         intercepts = nengo.dists.Uniform(-1,1)
     elif intercept_dist == 1:
         intercepts = AreaIntercepts(dimensions=DIM*2)
-    elif intercept_dist == 1:
-        intercepts = nengo.dists.Uniform(-.3,1)
+    elif intercept_dist == 2:
+        intercepts = nengo.dists.Uniform(.3,1)
 
 
     # Model of the external environment

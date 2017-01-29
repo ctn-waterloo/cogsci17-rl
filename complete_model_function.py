@@ -29,7 +29,8 @@ output_keys_left = ['0.7*S1 + 0.3*S2', 'S0', 'S0']
 input_keys_right = ['S0', 'S1', 'S2']
 output_keys_right = ['0.3*S1 + 0.7*S2', 'S0', 'S0']
 
-n_sa_neurons = DIM*2*15 # number of neurons in the state+action population
+#n_sa_neurons = DIM*2*15 # number of neurons in the state+action population
+n_sa_neurons = DIM*2*75 # number of neurons in the state+action population
 n_prod_neurons = DIM*15 # number of neurons in the product network
 
 # Set all vectors to be orthogonal for now (easy debugging)
@@ -163,7 +164,7 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
         intercepts = nengo.dists.Uniform(-1,1)
     elif intercept_dist == 1:
         intercepts = AreaIntercepts(dimensions=DIM*2)
-    elif intercept_dist == 1:
+    elif intercept_dist == 2:
         intercepts = nengo.dists.Uniform(-.3,1)
 
     with model:
