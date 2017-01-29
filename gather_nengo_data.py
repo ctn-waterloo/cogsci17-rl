@@ -37,7 +37,8 @@ if len(sys.argv) == 9:
     p_learning = sys.argv[4] == 'True'
     initialized = sys.argv[5] == 'True'
     forced_prob = sys.argv[6] == 'True'
-    default_intercepts = sys.argv[7] == 'True'
+    #default_intercepts = sys.argv[7] == 'True'
+    intercept_dist = int(sys.argv[7])
     learning_rate = float(sys.argv[8])
 else:
     print("Not all arguments specified")
@@ -79,7 +80,7 @@ def l(b):
 date_time_string = time.strftime("%d-%H:%M")
 
 suffix = 'nengo_r{0}_s{1}_d{2}_p{3}_i{4}_ps{5}_int{6}_l{7}_{8}'.format(num_runs, num_steps, l(direct), l(p_learning), l(initialized), 
-                                                                           l(forced_prob), l(default_intercepts), learning_rate, date_time_string)
+                                                                           l(forced_prob), intercept_dist, learning_rate, date_time_string)
 
 outfile_name = 'data/out_' + suffix + '.txt'
 raw_data_dir = 'data/raw_data_' + suffix
@@ -91,7 +92,7 @@ with open(outfile_name, 'w+') as outfile:
         print('{0}/{1} Runs'.format(i+1,num_runs))
 
         model, agent = get_model(direct=direct, p_learning=p_learning, initialized=initialized, learning_rate=learning_rate,
-                                 forced_prob=forced_prob, default_intercepts=default_intercepts)
+                                 forced_prob=forced_prob, intercept_dist=intercept_dist)
 
         sim = nengo.Simulator(model)
         # The current version of p_learning needs to run through twice for each step

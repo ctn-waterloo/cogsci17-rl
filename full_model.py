@@ -13,7 +13,12 @@ import scipy
 
 DIM = 5#64
 
-learning = False#True
+direct = True
+learning = True
+initialized = False#True
+# If the output of the probability population is forced to be a probability that adds to 1
+forced_prob = True
+learning_rate=9e-5#5e-6
 
 # Time between state transitions
 time_interval = 0.1#0.5
@@ -22,7 +27,8 @@ states = ['S0', 'S1', 'S2']
 
 actions = ['L', 'R']
 
-n_sa_neurons = DIM*2*15 # number of neurons in the state+action population
+#n_sa_neurons = DIM*2*15 # number of neurons in the state+action population
+n_sa_neurons = DIM*2*75 # number of neurons in the state+action population
 n_prod_neurons = DIM*15 # number of neurons in the product network
 
 # Set all vectors to be orthogonal for now (easy debugging)
@@ -74,6 +80,22 @@ def correct_mapping(x):
         # Always return to state 0 at this point
         return index_to_state_vector[0]
 
+def initial_mapping(x):
+    state = x[:DIM]
+    action = x[DIM:]
+
+    closest_state = find_closest_vector(state, index_to_state_vector)
+    closest_action = find_closest_vector(action, index_to_action_vector)
+
+    if closest_state == 0:
+        if closest_action == 0: # Left
+            return index_to_state_vector[1]*.5 + index_to_state_vector[2]*.5
+        elif closest_action == 1: # Right
+            return index_to_state_vector[1]*.5 + index_to_state_vector[2]*.5
+    else:
+        # Always return to state 0 at this point
+        return index_to_state_vector[0]
+
 def selected_error(t, x):
     error = x[:DIM]
     action1 = x[DIM:DIM*2]
@@ -88,6 +110,19 @@ def selected_error(t, x):
         return error
     else:
         return res
+
+#FIXME: this is currently hardcoded for only 5 dimensions
+def make_probability(t, x):
+    s0 = min(max(0, x[0]),1)
+    s1 = min(max(0, x[1]),1)
+    s2 = min(max(0, x[2]),1)
+    #total = np.sum(x[0], x[1], x[2])
+    total = s0 + s1 + s2
+    
+    if total > 0:
+        return (s0/total, s1/total, s2/total, x[3], x[4])
+    else:
+        return x
 
 # takes a state index and returns the corresponding vector for the semantic pointer
 index_to_state_vector = np.zeros((len(states), DIM))
@@ -116,10 +151,19 @@ def find_closest_vector(vec, index_to_vector):
     return best_index
 
 model = nengo.Network('RL P-learning', seed=13)
-if not learning:
-    model.config[nengo.Ensemble].neuron_type = nengo.Direct()
-    model.config[nengo.Connection].synapse = None
 with model:
+    cfg = nengo.Config(nengo.Ensemble, nengo.Connection)
+    if direct:
+        cfg[nengo.Ensemble].neuron_type = nengo.Direct()
+        cfg[nengo.Connection].synapse = None
+
+    if intercept_dist == 0:
+        intercepts = nengo.dists.Uniform(-1,1)
+    elif intercept_dist == 1:
+        intercepts = AreaIntercepts(dimensions=DIM*2)
+    elif intercept_dist == 1:
+        intercepts = nengo.dists.Uniform(-.3,1)
+
 
     # Model of the external environment
     # Input: action semantic pointer
@@ -130,77 +174,88 @@ with model:
     model.env = nengo.Node(AgentSplit(vocab=vocab, time_interval=time_interval),
                            size_in=1, size_out=DIM*4)
 
-    model.state = spa.State(DIM, vocab=vocab)
-    model.action = spa.State(DIM, vocab=vocab)
-    model.probability = spa.State(DIM, vocab=vocab)
+    with cfg:
+        model.state = spa.State(DIM, vocab=vocab)
+        model.action = spa.State(DIM, vocab=vocab)
+        model.probability = spa.State(DIM, vocab=vocab)
 
-    # The action that is currently being used along with the state to calculate value
-    # If this matches with the actual action being taken, learning will happen (on the next step after a delay)
-    model.calculating_action = spa.State(DIM, vocab=vocab)
-    nengo.Connection(model.env[DIM*3:DIM*4], model.calculating_action.input)
+        # The action that is currently being used along with the state to calculate value
+        # If this matches with the actual action being taken, learning will happen (on the next step after a delay)
+        model.calculating_action = spa.State(DIM, vocab=vocab)
+        nengo.Connection(model.env[DIM*3:DIM*4], model.calculating_action.input)
 
-
-    # State and selected action in one ensemble
-    model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=AreaIntercepts(dimensions=DIM*2))
-
-    #model.cconv = nengo.networks.CircularConvolution(300, DIM)
-
-    nengo.Connection(model.state.output, model.state_and_action[:DIM])
-    nengo.Connection(model.env[DIM*3:DIM*4], model.state_and_action[DIM:])
-    ####nengo.Connection(model.env[:DIM], model.state_and_action[DIM:])
     if learning:
+        # State and selected action in one ensemble
+        model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=intercepts)
+        if initialized:
+            function = correct_mapping
+        else:
+            function= initial_mapping
         conn = nengo.Connection(model.state_and_action, model.probability.input,
-                                function=lambda x: [0]*DIM,
-                                learning_rule_type=nengo.PES(pre_synapse=z**(-int(time_interval*2*1000))),
+                                function=function,
+                                learning_rule_type=nengo.PES(pre_synapse=z**(-int(time_interval*2*1000)),
+                                                             learning_rate=learning_rate),
                                )
     else:
-        nengo.Connection(model.state_and_action, model.probability.input, function=correct_mapping)
+        with cfg:
+            # State and selected action in one ensemble
+            model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=intercepts)
+            nengo.Connection(model.state_and_action, model.probability.input, function=correct_mapping)
 
+    with cfg:
+        nengo.Connection(model.state.output, model.state_and_action[:DIM])
+        nengo.Connection(model.env[DIM*3:DIM*4], model.state_and_action[DIM:])
 
-    # Semantic pointer for the Q values of each state
-    # In the form of q0*S0 + q1*S1 + q2*S2
-    model.q = spa.State(DIM, vocab=vocab)
-    
-    # Scalar value from the dot product of P and Q
-    model.value = nengo.Ensemble(100, 1)
+        # Semantic pointer for the Q values of each state
+        # In the form of q0*S0 + q1*S1 + q2*S2
+        model.q = spa.State(DIM, vocab=vocab)
+        
+        # Scalar value from the dot product of P and Q
+        model.value = nengo.Ensemble(100, 1)
 
-    #TODO: figure out what the result of P.Q is used for
-    model.prod = nengo.networks.Product(n_neurons=n_prod_neurons, dimensions=DIM)
+        #TODO: figure out what the result of P.Q is used for
+        model.prod = nengo.networks.Product(n_neurons=n_prod_neurons, dimensions=DIM)
 
-    nengo.Connection(model.probability.output, model.prod.A)
-    #nengo.Connection(model.q.output, model.prod.B)
-    nengo.Connection(model.env[DIM*2:DIM*3], model.prod.B)
+        if forced_prob:
+            normalized_prob = nengo.Node(make_probability, size_in=DIM, size_out=DIM)
+            nengo.Connection(model.probability.output, normalized_prob, synapse=None)
+            nengo.Connection(normalized_prob, model.prod.A, synapse=None)
 
-    nengo.Connection(model.prod.output, model.value,
-                     transform=np.ones((1,DIM)))
+        else:
+            nengo.Connection(model.probability.output, model.prod.A)
+        #nengo.Connection(model.q.output, model.prod.B)
+        nengo.Connection(model.env[DIM*2:DIM*3], model.prod.B)
 
-    #TODO: doublecheck that this is the correct way to connect things
-    nengo.Connection(model.env[DIM:DIM*2], model.state.input)
+        nengo.Connection(model.prod.output, model.value,
+                         transform=np.ones((1,DIM)))
 
-    #TODO: need to set up error signal and handle timing
-    model.error = spa.State(DIM, vocab=vocab)
-    ##nengo.Connection(model.error.output, conn.learning_rule)
-    
-    model.error_node = nengo.Node(selected_error,size_in=DIM*3, size_out=DIM)
-    nengo.Connection(model.error.output, model.error_node[:DIM])
-    nengo.Connection(model.action.output, model.error_node[DIM:DIM*2])
-    nengo.Connection(model.calculating_action.output, model.error_node[DIM*2:DIM*3])
-    if learning:
-        nengo.Connection(model.error_node, conn.learning_rule)
+        #TODO: doublecheck that this is the correct way to connect things
+        nengo.Connection(model.env[DIM:DIM*2], model.state.input)
 
-    #TODO: figure out which way the sign goes, one should be negative, and the other positive
-    #TODO: figure out how to delay by one "time-step" correctly
-    nengo.Connection(model.state.output, model.error.input, transform=-1)
-    nengo.Connection(model.probability.output, model.error.input, transform=1,
-                     synapse=z**(-int(time_interval*2*1000)))
-                     #synapse=nengolib.synapses.PureDelay(500)) #500ms delay
+        #TODO: need to set up error signal and handle timing
+        model.error = spa.State(DIM, vocab=vocab)
+        ##nengo.Connection(model.error.output, conn.learning_rule)
+        
+        model.error_node = nengo.Node(selected_error,size_in=DIM*3, size_out=DIM)
+        nengo.Connection(model.error.output, model.error_node[:DIM])
+        nengo.Connection(model.action.output, model.error_node[DIM:DIM*2])
+        nengo.Connection(model.calculating_action.output, model.error_node[DIM*2:DIM*3])
+        if learning:
+            nengo.Connection(model.error_node, conn.learning_rule)
 
-    # Testing the delay synapse to make sure it works as expected
-    model.state_delay_test = spa.State(DIM, vocab=vocab)
-    nengo.Connection(model.state.output, model.state_delay_test.input,
-                     synapse=z**(-int(time_interval*2*1000)))
+        #TODO: figure out which way the sign goes, one should be negative, and the other positive
+        #TODO: figure out how to delay by one "time-step" correctly
+        nengo.Connection(model.state.output, model.error.input, transform=-1)
+        nengo.Connection(model.probability.output, model.error.input, transform=1,
+                         synapse=z**(-int(time_interval*2*1000)))
+                         #synapse=nengolib.synapses.PureDelay(500)) #500ms delay
 
-    #nengo.Connection(model.value, model.env)
-    nengo.Connection(model.value, model.env, synapse=0)
-    nengo.Connection(model.env[:DIM], model.action.input) # Purely for plotting
-    nengo.Connection(model.env[DIM*2:DIM*3], model.q.input) # Purely for plotting
+        # Testing the delay synapse to make sure it works as expected
+        model.state_delay_test = spa.State(DIM, vocab=vocab)
+        nengo.Connection(model.state.output, model.state_delay_test.input,
+                         synapse=z**(-int(time_interval*2*1000)))
+
+        #nengo.Connection(model.value, model.env)
+        nengo.Connection(model.value, model.env, synapse=0.025)
+        nengo.Connection(model.env[:DIM], model.action.input) # Purely for plotting
+        nengo.Connection(model.env[DIM*2:DIM*3], model.q.input) # Purely for plotting

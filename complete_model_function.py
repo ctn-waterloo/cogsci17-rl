@@ -154,10 +154,17 @@ def make_probability(t, x):
 
 
 def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
-              learning_rate=1e-4, forced_prob=False, default_intercepts=True):
+              learning_rate=1e-4, forced_prob=False, intercept_dist=0):
 
 
     model = nengo.Network('RL P-learning', seed=13)
+    
+    if intercept_dist == 0:
+        intercepts = nengo.dists.Uniform(-1,1)
+    elif intercept_dist == 1:
+        intercepts = AreaIntercepts(dimensions=DIM*2)
+    elif intercept_dist == 1:
+        intercepts = nengo.dists.Uniform(-.3,1)
 
     with model:
         cfg = nengo.Config(nengo.Ensemble, nengo.Connection)
@@ -185,10 +192,7 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
 
         if p_learning:
             # State and selected action in one ensemble
-            if default_intercepts:
-                model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2)
-            else:
-                model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=AreaIntercepts(dimensions=DIM*2))
+            model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=intercepts)
             if initialized:
                 function = correct_mapping
             else:
@@ -201,7 +205,7 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
         else:
             with cfg:
                 # State and selected action in one ensemble
-                model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=AreaIntercepts(dimensions=DIM*2))
+                model.state_and_action = nengo.Ensemble(n_neurons=n_sa_neurons, dimensions=DIM*2, intercepts=intercepts)
                 nengo.Connection(model.state_and_action, model.probability.input, function=correct_mapping)
 
         with cfg:
