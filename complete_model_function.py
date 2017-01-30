@@ -11,7 +11,7 @@ from modelbasednode import Agent, AgentSplit
 from nengolib.signal import z
 import scipy
 
-DIM = 5#64
+DIM = 16#5#64
 
 # Time between state transitions
 time_interval = 0.1#0.5
@@ -34,7 +34,10 @@ n_sa_neurons = DIM*2*75 # number of neurons in the state+action population
 n_prod_neurons = DIM*15 # number of neurons in the product network
 
 # Set all vectors to be orthogonal for now (easy debugging)
-vocab = spa.Vocabulary(dimensions=DIM, randomize=False)
+if DIM == 5:
+    vocab = spa.Vocabulary(dimensions=DIM, randomize=False)
+else:
+    vocab = spa.Vocabulary(dimensions=DIM)
 
 # TODO: these vectors might need to be chosen in a smarter way
 for sp in states+actions:
@@ -155,7 +158,7 @@ def make_probability(t, x):
 
 
 def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
-              learning_rate=1e-4, forced_prob=False, intercept_dist=0):
+              learning_rate=1e-4, forced_prob=False, intercept_dist=0, synapse=0.005):
 
 
     model = nengo.Network('RL P-learning', seed=13)
@@ -252,8 +255,5 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
                 nengo.Connection(model.probability.output, model.error.input, transform=1,
                                  synapse=z**(-int(time_interval*2*1000)))
 
-            if direct:
-                nengo.Connection(model.value, model.env, synapse=0.025)
-            else:
-                nengo.Connection(model.value, model.env, synapse=0.025)
+            nengo.Connection(model.value, model.env, synapse=synapse)
     return model, agent

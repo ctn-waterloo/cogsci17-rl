@@ -28,7 +28,11 @@ forced_prob = False
 #default_intercepts = True
 intercept_dist = 0
 
+# The synapse on the connection from value to env
+synapse = 0.005 #0.025, 0
+
 learning_rate = 1e-4
+
 
 # Read option parameters from the command line
 if len(sys.argv) == 9:
@@ -40,7 +44,8 @@ if len(sys.argv) == 9:
     forced_prob = sys.argv[6] == 'True'
     #default_intercepts = sys.argv[7] == 'True'
     intercept_dist = int(sys.argv[7])
-    learning_rate = float(sys.argv[8])
+    synapse = float(sys.argv[8])
+    learning_rate = float(sys.argv[9])
 else:
     print("Not all arguments specified")
 if len(sys.argv) == 7:
@@ -80,8 +85,8 @@ def l(b):
 # Day-Hour:Minute
 date_time_string = time.strftime("%d-%H:%M")
 
-suffix = 'nengo_r{0}_s{1}_d{2}_p{3}_i{4}_ps{5}_int{6}_l{7}_{8}'.format(num_runs, num_steps, l(direct), l(p_learning), l(initialized), 
-                                                                           l(forced_prob), intercept_dist, learning_rate, date_time_string)
+suffix = 'nengo_r{0}_s{1}_d{2}_p{3}_i{4}_ps{5}_int{6}_s{7}_l{8}_{9}'.format(num_runs, num_steps, l(direct), l(p_learning), l(initialized), 
+                                                                           l(forced_prob), intercept_dist, synapse, learning_rate, date_time_string)
 
 outfile_name = 'data/out_' + suffix + '.txt'
 raw_data_dir = 'data/raw_data_' + suffix
@@ -93,7 +98,7 @@ with open(outfile_name, 'w+') as outfile:
         print('{0}/{1} Runs'.format(i+1,num_runs))
 
         model, agent = get_model(direct=direct, p_learning=p_learning, initialized=initialized, learning_rate=learning_rate,
-                                 forced_prob=forced_prob, intercept_dist=intercept_dist)
+                                 forced_prob=forced_prob, intercept_dist=intercept_dist, synapse=synapse)
 
         sim = nengo.Simulator(model)
         # The current version of p_learning needs to run through twice for each step
