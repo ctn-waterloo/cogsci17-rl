@@ -35,7 +35,7 @@ learning_rate = 1e-4
 
 
 # Read option parameters from the command line
-if len(sys.argv) == 9:
+if len(sys.argv) == 10:
     num_runs = int(sys.argv[1])
     num_steps = int(sys.argv[2])
     direct = sys.argv[3] == 'True'
