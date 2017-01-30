@@ -235,31 +235,22 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
             nengo.Connection(model.prod.output, model.value,
                              transform=np.ones((1,DIM)))
 
-            #TODO: doublecheck that this is the correct way to connect things
             nengo.Connection(model.env[DIM:DIM*2], model.state.input)
 
-            #TODO: need to set up error signal and handle timing
-            model.error = spa.State(DIM, vocab=vocab)
-            ##nengo.Connection(model.error.output, conn.learning_rule)
             
-            model.error_node = nengo.Node(selected_error,size_in=DIM*3, size_out=DIM)
-            nengo.Connection(model.error.output, model.error_node[:DIM])
-            nengo.Connection(model.action.output, model.error_node[DIM:DIM*2])
-            nengo.Connection(model.calculating_action.output, model.error_node[DIM*2:DIM*3])
             if p_learning:
+                model.error = spa.State(DIM, vocab=vocab)
+                model.error_node = nengo.Node(selected_error,size_in=DIM*3, size_out=DIM)
+                nengo.Connection(model.error.output, model.error_node[:DIM])
+                nengo.Connection(model.action.output, model.error_node[DIM:DIM*2])
+                nengo.Connection(model.calculating_action.output, model.error_node[DIM*2:DIM*3])
                 nengo.Connection(model.error_node, conn.learning_rule)
 
-            #TODO: figure out which way the sign goes, one should be negative, and the other positive
-            #TODO: figure out how to delay by one "time-step" correctly
-            nengo.Connection(model.state.output, model.error.input, transform=-1)
-            nengo.Connection(model.probability.output, model.error.input, transform=1,
-                             synapse=z**(-int(time_interval*2*1000)))
-                             #synapse=nengolib.synapses.PureDelay(500)) #500ms delay
-
-            # Testing the delay synapse to make sure it works as expected
-            model.state_delay_test = spa.State(DIM, vocab=vocab)
-            nengo.Connection(model.state.output, model.state_delay_test.input,
-                             synapse=z**(-int(time_interval*2*1000)))
+                #TODO: figure out which way the sign goes, one should be negative, and the other positive
+                #TODO: figure out how to delay by one "time-step" correctly
+                nengo.Connection(model.state.output, model.error.input, transform=-1)
+                nengo.Connection(model.probability.output, model.error.input, transform=1,
+                                 synapse=z**(-int(time_interval*2*1000)))
 
             if direct:
                 nengo.Connection(model.value, model.env, synapse=0.025)

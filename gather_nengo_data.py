@@ -25,7 +25,8 @@ initialized = False
 
 forced_prob = False
 
-default_intercepts = True
+#default_intercepts = True
+intercept_dist = 0
 
 learning_rate = 1e-4
 
