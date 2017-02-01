@@ -13,147 +13,6 @@ import scipy
 
 DIM = 16#5#64
 
-# Time between state transitions
-time_interval = 0.1#0.5
-
-states = ['S0', 'S1', 'S2']
-
-actions = ['L', 'R']
-
-input_keys = ['S0*L', 'S0*R', 'S1*L', 'S1*R', 'S2*L', 'S2*R']
-output_keys = ['0.7*S1 + 0.3*S2', '0.3*S1 + 0.7*S2', 'S0', 'S0', 'S0', 'S0']
-
-input_keys_left = ['S0', 'S1', 'S2']
-output_keys_left = ['0.7*S1 + 0.3*S2', 'S0', 'S0']
-
-input_keys_right = ['S0', 'S1', 'S2']
-output_keys_right = ['0.3*S1 + 0.7*S2', 'S0', 'S0']
-
-#n_sa_neurons = DIM*2*15 # number of neurons in the state+action population
-n_sa_neurons = DIM*2*75 # number of neurons in the state+action population
-n_prod_neurons = DIM*15 # number of neurons in the product network
-
-# Set all vectors to be orthogonal for now (easy debugging)
-if DIM == 5:
-    vocab = spa.Vocabulary(dimensions=DIM, randomize=False)
-else:
-    vocab = spa.Vocabulary(dimensions=DIM)
-
-# TODO: these vectors might need to be chosen in a smarter way
-for sp in states+actions:
-    vocab.parse(sp)
-
-class AreaIntercepts(nengo.dists.Distribution):
-    dimensions = nengo.params.NumberParam('dimensions')
-    base = nengo.dists.DistributionParam('base')
-
-    def __init__(self, dimensions, base=nengo.dists.Uniform(-1, 1)):
-        super(AreaIntercepts, self).__init__()
-        self.dimensions = dimensions
-        self.base = base
-
-    def __repr(self):
-        return "AreaIntercepts(dimensions=%r, base=%r)" % (self.dimensions, self.base)
-
-    def transform(self, x):
-        sign = 1
-        if x > 0:
-            x = -x
-            sign = -1
-        return sign * np.sqrt(1-scipy.special.betaincinv((self.dimensions+1)/2.0, 0.5, x+1))
-
-    def sample(self, n, d=None, rng=np.random):
-        s = self.base.sample(n=n, d=d, rng=rng)
-        for i in range(len(s)):
-            s[i] = self.transform(s[i])
-        return s
-
-def selected_error(t, x):
-    error = x[:DIM]
-    action1 = x[DIM:DIM*2]
-    action2 = x[DIM*2:]
-
-    res = np.zeros(DIM)
-
-    action_index1 = find_closest_vector(action1, index_to_action_vector)
-    action_index2 = find_closest_vector(action2, index_to_action_vector)
-
-    if action_index1 == action_index2:
-        return error
-    else:
-        return res
-
-# takes a state index and returns the corresponding vector for the semantic pointer
-index_to_state_vector = np.zeros((len(states), DIM))
-
-# takes an action index and returns the corresponding vector for the semantic pointer
-index_to_action_vector = np.zeros((len(actions), DIM))
-
-# Fill in mapping data structures based on the vocab given
-for i, vk in enumerate(vocab.keys):
-    if vk in actions:
-        index_to_action_vector[actions.index(vk)] = vocab.vectors[i]
-
-    if vk in states:
-        index_to_state_vector[states.index(vk)] = vocab.vectors[i]
-
-def find_closest_vector(vec, index_to_vector):
-    # Find the dot product with all other vectors
-    distance = 0
-    best_index = 0
-    for i, v in enumerate(index_to_vector):
-        d = np.dot(vec, v)
-        if d > distance:
-            distance = d
-            best_index = i
-
-    return best_index
-
-# The ideal function that should be learned
-def correct_mapping(x):
-    state = x[:DIM]
-    action = x[DIM:]
-
-    closest_state = find_closest_vector(state, index_to_state_vector)
-    closest_action = find_closest_vector(action, index_to_action_vector)
-
-    if closest_state == 0:
-        if closest_action == 0: # Left
-            return index_to_state_vector[1]*.7 + index_to_state_vector[2]*.3
-        elif closest_action == 1: # Right
-            return index_to_state_vector[1]*.3 + index_to_state_vector[2]*.7
-    else:
-        # Always return to state 0 at this point
-        return index_to_state_vector[0]
-
-def initial_mapping(x):
-    state = x[:DIM]
-    action = x[DIM:]
-
-    closest_state = find_closest_vector(state, index_to_state_vector)
-    closest_action = find_closest_vector(action, index_to_action_vector)
-
-    if closest_state == 0:
-        if closest_action == 0: # Left
-            return index_to_state_vector[1]*.5 + index_to_state_vector[2]*.5
-        elif closest_action == 1: # Right
-            return index_to_state_vector[1]*.5 + index_to_state_vector[2]*.5
-    else:
-        # Always return to state 0 at this point
-        return index_to_state_vector[0]
-
-#FIXME: this is currently hardcoded for only 5 dimensions
-def make_probability(t, x):
-    s0 = min(max(0, x[0]),1)
-    s1 = min(max(0, x[1]),1)
-    s2 = min(max(0, x[2]),1)
-    #total = np.sum(x[0], x[1], x[2])
-    total = s0 + s1 + s2
-    
-    if total > 0:
-        return (s0/total, s1/total, s2/total, x[3], x[4])
-    else:
-        return x
 
 
 
@@ -162,14 +21,155 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
 
 
     DIM = dimensionality
-    model = nengo.Network('RL P-learning', seed=13)
-    
-    if intercept_dist == 0:
-        intercepts = nengo.dists.Uniform(-1,1)
-    elif intercept_dist == 1:
-        intercepts = AreaIntercepts(dimensions=DIM*2)
-    elif intercept_dist == 2:
-        intercepts = nengo.dists.Uniform(-.3,1)
+    # Time between state transitions
+    time_interval = 0.1#0.5
+
+    states = ['S0', 'S1', 'S2']
+
+    actions = ['L', 'R']
+
+    input_keys = ['S0*L', 'S0*R', 'S1*L', 'S1*R', 'S2*L', 'S2*R']
+    output_keys = ['0.7*S1 + 0.3*S2', '0.3*S1 + 0.7*S2', 'S0', 'S0', 'S0', 'S0']
+
+    input_keys_left = ['S0', 'S1', 'S2']
+    output_keys_left = ['0.7*S1 + 0.3*S2', 'S0', 'S0']
+
+    input_keys_right = ['S0', 'S1', 'S2']
+    output_keys_right = ['0.3*S1 + 0.7*S2', 'S0', 'S0']
+
+    #n_sa_neurons = DIM*2*15 # number of neurons in the state+action population
+    n_sa_neurons = DIM*2*75 # number of neurons in the state+action population
+    n_prod_neurons = DIM*15 # number of neurons in the product network
+
+    # Set all vectors to be orthogonal for now (easy debugging)
+    if DIM == 5:
+        vocab = spa.Vocabulary(dimensions=DIM, randomize=False)
+    else:
+        vocab = spa.Vocabulary(dimensions=DIM)
+
+    # TODO: these vectors might need to be chosen in a smarter way
+    for sp in states+actions:
+        vocab.parse(sp)
+
+    class AreaIntercepts(nengo.dists.Distribution):
+        dimensions = nengo.params.NumberParam('dimensions')
+        base = nengo.dists.DistributionParam('base')
+
+        def __init__(self, dimensions, base=nengo.dists.Uniform(-1, 1)):
+            super(AreaIntercepts, self).__init__()
+            self.dimensions = dimensions
+            self.base = base
+
+        def __repr(self):
+            return "AreaIntercepts(dimensions=%r, base=%r)" % (self.dimensions, self.base)
+
+        def transform(self, x):
+            sign = 1
+            if x > 0:
+                x = -x
+                sign = -1
+            return sign * np.sqrt(1-scipy.special.betaincinv((self.dimensions+1)/2.0, 0.5, x+1))
+
+        def sample(self, n, d=None, rng=np.random):
+            s = self.base.sample(n=n, d=d, rng=rng)
+            for i in range(len(s)):
+                s[i] = self.transform(s[i])
+            return s
+
+    def selected_error(t, x):
+        error = x[:DIM]
+        action1 = x[DIM:DIM*2]
+        action2 = x[DIM*2:]
+
+        res = np.zeros(DIM)
+
+        action_index1 = find_closest_vector(action1, index_to_action_vector)
+        action_index2 = find_closest_vector(action2, index_to_action_vector)
+
+        if action_index1 == action_index2:
+            return error
+        else:
+            return res
+
+    # takes a state index and returns the corresponding vector for the semantic pointer
+    index_to_state_vector = np.zeros((len(states), DIM))
+
+    # takes an action index and returns the corresponding vector for the semantic pointer
+    index_to_action_vector = np.zeros((len(actions), DIM))
+
+    # Fill in mapping data structures based on the vocab given
+    for i, vk in enumerate(vocab.keys):
+        if vk in actions:
+            index_to_action_vector[actions.index(vk)] = vocab.vectors[i]
+
+        if vk in states:
+            index_to_state_vector[states.index(vk)] = vocab.vectors[i]
+
+    def find_closest_vector(vec, index_to_vector):
+        # Find the dot product with all other vectors
+        distance = 0
+        best_index = 0
+        for i, v in enumerate(index_to_vector):
+            d = np.dot(vec, v)
+            if d > distance:
+                distance = d
+                best_index = i
+
+        return best_index
+
+    # The ideal function that should be learned
+    def correct_mapping(x):
+        state = x[:DIM]
+        action = x[DIM:]
+
+        closest_state = find_closest_vector(state, index_to_state_vector)
+        closest_action = find_closest_vector(action, index_to_action_vector)
+
+        if closest_state == 0:
+            if closest_action == 0: # Left
+                return index_to_state_vector[1]*.7 + index_to_state_vector[2]*.3
+            elif closest_action == 1: # Right
+                return index_to_state_vector[1]*.3 + index_to_state_vector[2]*.7
+        else:
+            # Always return to state 0 at this point
+            return index_to_state_vector[0]
+
+    def initial_mapping(x):
+        state = x[:DIM]
+        action = x[DIM:]
+
+        closest_state = find_closest_vector(state, index_to_state_vector)
+        closest_action = find_closest_vector(action, index_to_action_vector)
+
+        if closest_state == 0:
+            if closest_action == 0: # Left
+                return index_to_state_vector[1]*.5 + index_to_state_vector[2]*.5
+            elif closest_action == 1: # Right
+                return index_to_state_vector[1]*.5 + index_to_state_vector[2]*.5
+        else:
+            # Always return to state 0 at this point
+            return index_to_state_vector[0]
+
+    #FIXME: this is currently hardcoded for only 5 dimensions
+    def make_probability(t, x):
+        s0 = min(max(0, x[0]),1)
+        s1 = min(max(0, x[1]),1)
+        s2 = min(max(0, x[2]),1)
+        #total = np.sum(x[0], x[1], x[2])
+        total = s0 + s1 + s2
+        
+        if total > 0:
+            return (s0/total, s1/total, s2/total, x[3], x[4])
+        else:
+            return x
+        model = nengo.Network('RL P-learning', seed=13)
+        
+        if intercept_dist == 0:
+            intercepts = nengo.dists.Uniform(-1,1)
+        elif intercept_dist == 1:
+            intercepts = AreaIntercepts(dimensions=DIM*2)
+        elif intercept_dist == 2:
+            intercepts = nengo.dists.Uniform(-.3,1)
 
     with model:
         cfg = nengo.Config(nengo.Ensemble, nengo.Connection)
