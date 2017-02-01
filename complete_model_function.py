@@ -158,9 +158,10 @@ def make_probability(t, x):
 
 
 def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
-              learning_rate=1e-4, forced_prob=False, intercept_dist=0, synapse=0.005):
+              learning_rate=1e-4, forced_prob=False, intercept_dist=0, synapse=0.005, dimensionality=5):
 
 
+    DIM = dimensionality
     model = nengo.Network('RL P-learning', seed=13)
     
     if intercept_dist == 0:
