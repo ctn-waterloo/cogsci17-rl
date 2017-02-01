@@ -9,74 +9,46 @@ import sys
 import time
 import nengo
 import os
+import argparse
 
-num_runs = 3#100
-num_steps = 40#40000
-tf_name = 'temp_file.txt'
+parser = argparse.ArgumentParser(description='Run the neural model-based reinforcement learning code and save the output')
+
+parser.add_argument('--runs', dest='num_runs', type=int, default=10, help='Number of instances of the model to run')
+parser.add_argument('--steps', dest='num_steps', type=int, default=20000, help='Number of steps to run each model for')
+parser.add_argument('--direct', dest='direct', action='store_true', help='Run the model in direct mode or not')
+parser.add_argument('--p_learning', dest='p_learning', action='store_true', help='Learning the state transition probabilities or not')
+parser.add_argument('--noinit', dest='initialized', action='store_false', help='If the transition probabilities are set to 50/50 or not (70/30). This flag should not be set if learning is not enabled, and should ideally be set if it is enabled')
+parser.add_argument('--synapse', dest='synapse', type=float, default=0.0, help='The synapse on the connection from value back to the environment')
+parser.add_argument('--dim', dest='dimensionality', type=int, default=5, help='Number of dimensions for the vocab')
+parser.add_argument('--lr', dest='learning_rate', type=float, default=1e-4, help='The learning rate for the transition probabilities')
+parser.add_argument('--intercepts', dest='intercept_dist', type=int, default=0, help='Type of intercepts to use for the population that is being learned from. 0 -> default, 1 -> AreaIntercepts, 2-> Uniform(-0.3, 1)')
+#TODO: allow forcing probability to work for higher dimensions
+parser.add_argument('--forcedprob', dest='forced_prob', action='store_true', help='If the output of the state transition calculation is forced to be a probability that sums to 1. NOTE: currently only supporting dim=5')
+
+args = parser.parse_args()
+
+num_runs = args.num_runs
+num_steps = args.num_steps
 
 # Running some ensembles in Direct mode
-direct = False#True
+direct = args.direct
 
 # If the transition probabilities should be learned
-p_learning = False
+p_learning = args.p_learning
 
 # If the transition probabilities of learning start at the correct value rather than 0
-initialized = False
+initialized = args.initialized
 
-forced_prob = False
+forced_prob = args.forced_prob
 
-#default_intercepts = True
-intercept_dist = 0
+intercept_dist = args.intercept_dist
 
 # The synapse on the connection from value to env
-synapse = 0.005 #0.025, 0
+synapse = args.synapse
 
-learning_rate = 1e-4
+learning_rate = args.learning_rate
 
-dimensionality = 5
-
-# Read option parameters from the command line
-if len(sys.argv) == 11:
-    num_runs = int(sys.argv[1])
-    num_steps = int(sys.argv[2])
-    direct = sys.argv[3] == 'True'
-    p_learning = sys.argv[4] == 'True'
-    initialized = sys.argv[5] == 'True'
-    forced_prob = sys.argv[6] == 'True'
-    #default_intercepts = sys.argv[7] == 'True'
-    intercept_dist = int(sys.argv[7])
-    synapse = float(sys.argv[8])
-    dimensionality = int(sys.argv[9])
-    learning_rate = float(sys.argv[10])
-else:
-    print("Not all arguments specified")
-if len(sys.argv) == 7:
-    num_runs = int(sys.argv[1])
-    num_steps = int(sys.argv[2])
-    direct = sys.argv[3] == 'True'
-    p_learning = sys.argv[4] == 'True'
-    initialized = sys.argv[5] == 'True'
-    learning_rate = float(sys.argv[6])
-if len(sys.argv) == 6:
-    num_runs = int(sys.argv[1])
-    num_steps = int(sys.argv[2])
-    direct = sys.argv[3] == 'True'
-    p_learning = sys.argv[4] == 'True'
-    initialized = sys.argv[5] == 'True'
-if len(sys.argv) == 5:
-    num_runs = int(sys.argv[1])
-    num_steps = int(sys.argv[2])
-    direct = sys.argv[3] == 'True'
-    p_learning = sys.argv[4] == 'True'
-if len(sys.argv) == 4:
-    num_runs = int(sys.argv[1])
-    num_steps = int(sys.argv[2])
-    direct = sys.argv[3] == 'True'
-if len(sys.argv) == 3:
-    num_runs = int(sys.argv[1])
-    num_steps = int(sys.argv[2])
-if len(sys.argv) == 2:
-    num_runs = int(sys.argv[1])
+dimensionality = args.dimensionality
 
 def l(b):
     if b:
@@ -92,8 +64,13 @@ suffix = 'nengo_r{0}_s{1}_d{2}_p{3}_i{4}_ps{5}_int{6}_s{7}_d{8}_l{9}_{10}'.forma
 
 outfile_name = 'data/out_' + suffix + '.txt'
 raw_data_dir = 'data/raw_data_' + suffix
+
+if not os.path.exists('data'):
+        os.makedirs('data')
+
 if not os.path.exists(raw_data_dir):
         os.makedirs(raw_data_dir)
+
 with open(outfile_name, 'w+') as outfile:
 
     for i in range(num_runs):
