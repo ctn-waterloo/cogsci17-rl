@@ -24,8 +24,8 @@ for i, line in enumerate(datafile):
         total = line.split(" ")
         all_data[i,:] = total
 
-colour_common = '#4878cf'#'blue'
-colour_rare = '#d65f5f'#'red'
+colour_common = '#67c5cb'#'#4878cf'#'blue'
+colour_rare = '#cb6d67'#'#d65f5f'#'red'
 
 df = pd.DataFrame(data=all_data)
 ax = sns.barplot(data=df, palette=[colour_common,colour_rare,colour_common,colour_rare])
