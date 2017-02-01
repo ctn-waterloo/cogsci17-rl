@@ -5,22 +5,16 @@
 import nengo
 from nengo import spa
 import numpy as np
-from environment import Environment
 from modelbasednode import Agent, AgentSplit
 #import nengolib
 from nengolib.signal import z
 import scipy
 
-DIM = 16#5#64
-
-
-
-
 def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
               learning_rate=1e-4, forced_prob=False, intercept_dist=0, synapse=0.005, dimensionality=5):
 
-
     DIM = dimensionality
+    
     # Time between state transitions
     time_interval = 0.1#0.5
 

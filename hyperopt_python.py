@@ -16,11 +16,10 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose', color_scheme='Linux', call_
 ideal = np.array([.774, .691, .697, .779])
 
 # These parameters should be chosen and not optimized
-num_runs = 40#100
-num_steps = 40000#40000
-max_evals = 1200
+num_runs = 40
+num_steps = 40000
+max_evals = 1000
 
-#def objective(alpha, noise):
 def objective(args):
     alpha = args['alpha']
     noise = args['noise']

@@ -83,10 +83,8 @@ class ModelBasedForward:
             for i, a in enumerate(self.actions):
                 self.q[(state1, a)] = value_nengo[i]
                 #self.q[(state1, a)] = self.calc_value(state1, a, state2_level)
-                #print(a, self.q[(state1, a)])
                 #print(a, self.calc_value(state1, a, state2_level))
                 #print(a, state1)
-                #self.q[(state1, a)] = reward_nengo #THIS IS WRONG!!!!!!!!!!!!! #also put all ens in direct mode except learning one for now, to speed things up
             #print("")
         # "state1" is either state 1 or 2
         elif state2_level == 1: # we are currently learning the value of the second state (state 1 or 2)

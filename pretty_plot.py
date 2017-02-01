@@ -73,7 +73,7 @@ if multi_plot:
 
         ax.legend((legend_rect_common, legend_rect_rare), ('Common', 'Rare'), fontsize=font_size)
         ax.set_xticklabels(['Rewarded', 'Unrewarded'], fontsize=font_size)
-        ax.set_title(title, fontsize=title_font_size)
+        #ax.set_title(title, fontsize=title_font_size)
 
         for tick in ax.yaxis.get_major_ticks():
             tick.label.set_fontsize(font_size)

@@ -11,11 +11,11 @@ from modelbasednode import Agent, AgentSplit
 from nengolib.signal import z
 import scipy
 
-DIM = 16#5#64
+DIM = 5#64
 
-direct = False#True
+direct = True
 learning = False#True
-initialized = True
+initialized = False#True
 # If the output of the probability population is forced to be a probability that adds to 1
 forced_prob = False#True
 learning_rate=9e-5#5e-6
@@ -32,8 +32,7 @@ n_sa_neurons = DIM*2*75 # number of neurons in the state+action population
 n_prod_neurons = DIM*15 # number of neurons in the product network
 
 # Set all vectors to be orthogonal for now (easy debugging)
-vocab = spa.Vocabulary(dimensions=DIM)
-#vocab = spa.Vocabulary(dimensions=DIM, randomize=False)
+vocab = spa.Vocabulary(dimensions=DIM, randomize=False)
 
 # TODO: these vectors might need to be chosen in a smarter way
 for sp in states+actions:
@@ -183,8 +182,8 @@ with model:
 
         # The action that is currently being used along with the state to calculate value
         # If this matches with the actual action being taken, learning will happen (on the next step after a delay)
-        model.calculating_action = spa.State(DIM, vocab=vocab)
-        nengo.Connection(model.env[DIM*3:DIM*4], model.calculating_action.input)
+        ###model.calculating_action = spa.State(DIM, vocab=vocab)
+        ###nengo.Connection(model.env[DIM*3:DIM*4], model.calculating_action.input)
 
     if learning:
         # State and selected action in one ensemble
@@ -233,7 +232,7 @@ with model:
 
         #TODO: doublecheck that this is the correct way to connect things
         nengo.Connection(model.env[DIM:DIM*2], model.state.input)
-
+        """
         #TODO: need to set up error signal and handle timing
         model.error = spa.State(DIM, vocab=vocab)
         ##nengo.Connection(model.error.output, conn.learning_rule)
@@ -251,11 +250,7 @@ with model:
         nengo.Connection(model.probability.output, model.error.input, transform=1,
                          synapse=z**(-int(time_interval*2*1000)))
                          #synapse=nengolib.synapses.PureDelay(500)) #500ms delay
-
-        # Testing the delay synapse to make sure it works as expected
-        model.state_delay_test = spa.State(DIM, vocab=vocab)
-        nengo.Connection(model.state.output, model.state_delay_test.input,
-                         synapse=z**(-int(time_interval*2*1000)))
+        """
 
         #nengo.Connection(model.value, model.env)
         nengo.Connection(model.value, model.env, synapse=0.025)

@@ -20,7 +20,7 @@ states = ['S0', 'S1', 'S2']
 actions = ['L', 'R']
 
 n_sa_neurons = DIM*2*15 # number of neurons in the state+action population
-n_prod_neurons = DIM*50 # number of neurons in the product network
+n_prod_neurons = DIM*15 # number of neurons in the product network
 
 # Set all vectors to be orthogonal for now (easy debugging)
 vocab = spa.Vocabulary(dimensions=DIM, randomize=False)
@@ -98,6 +98,7 @@ neuron_type=nengo.Direct()
 model = nengo.Network('RL P-learning', seed=13)
 with model:
 
+
     cfg = nengo.Config(nengo.Ensemble)
     cfg[nengo.Ensemble].neuron_type = nengo.Direct()
     # Model of the external environment
@@ -110,15 +111,16 @@ with model:
     model.state = spa.State(DIM, vocab=vocab)
     model.action = spa.State(DIM, vocab=vocab)
     #model.probability = spa.State(DIM, vocab=vocab)
-    model.probability_left = spa.State(DIM, vocab=vocab)
-    model.probability_right = spa.State(DIM, vocab=vocab)
-    model.combined_probability = nengo.Ensemble(n_neurons=DIM*2*50,
-                                                dimensions=DIM*2,
-                                               )#neuron_type=neuron_type)
+    with cfg:
+        model.probability_left = spa.State(DIM, vocab=vocab)
+        model.probability_right = spa.State(DIM, vocab=vocab)
+        model.combined_probability = nengo.Ensemble(n_neurons=DIM*2*50,
+                                                    dimensions=DIM*2,
+                                                   )#neuron_type=neuron_type)
     # Initialize transition probability estimates to 50% each
-    #init_node = nengo.Node(lambda t: 0 if t < 2.5 else 0)
-    #nengo.Connection(init_node, model.probability_left.input[:3], transform=[[1],[1],[1]]) # super hacky for now
-    #nengo.Connection(init_node, model.probability_right.input[:3], transform=[[1],[1],[1]]) # super hacky for now
+    init_node = nengo.Node(lambda t: .5 if t < .01 else 0)
+    nengo.Connection(init_node, model.probability_left[:3]) # super hacky for now
+    nengo.Connection(init_node, model.probability_right[:3]) # super hacky for now
     
     model.state_ensemble = nengo.Ensemble(n_neurons=DIM*50,dimensions=DIM)
     
@@ -145,8 +147,9 @@ with model:
     model.value = nengo.Ensemble(200, 2, neuron_type=neuron_type)
 
     #TODO: figure out what the result of P.Q is used for
-    model.prod_left = nengo.networks.Product(n_neurons=n_prod_neurons, dimensions=DIM)
-    model.prod_right = nengo.networks.Product(n_neurons=n_prod_neurons, dimensions=DIM)
+    with cfg:
+        model.prod_left = nengo.networks.Product(n_neurons=n_prod_neurons, dimensions=DIM)
+        model.prod_right = nengo.networks.Product(n_neurons=n_prod_neurons, dimensions=DIM)
 
     nengo.Connection(model.probability_left.output, model.prod_left.A)
     nengo.Connection(model.probability_right.output, model.prod_right.A)
@@ -163,7 +166,8 @@ with model:
 
     #TODO: need to set up error signal and handle timing
     #model.error = spa.State(DIM, vocab=vocab)
-    model.error = nengo.Ensemble(n_neurons=DIM*2*50, dimensions=DIM*2)
+    with cfg:
+        model.error = nengo.Ensemble(n_neurons=DIM*2*50, dimensions=DIM*2)
     
     #nengo.Connection(model.error.output, conn.learning_rule)
     model.error_node = nengo.Node(ideal_error,size_in=DIM*2, size_out=DIM*2)

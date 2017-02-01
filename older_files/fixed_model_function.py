@@ -130,7 +130,9 @@ def get_model(q_scaling=1, direct=False, p_learning=True):
     #if direct:
     #    model.config[nengo.Ensemble].neuron_type = nengo.Direct()
     if direct:
-        learning = True#False #TEMP FIXME
+        learning = False #TEMP FIXME
+        if not learning:
+            model.config[nengo.Ensemble].neuron_type = nengo.Direct()
         neuron_type = nengo.Direct()
     else:
         learning = True #TEMP FIXME
