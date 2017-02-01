@@ -162,14 +162,14 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
             return (s0/total, s1/total, s2/total, x[3], x[4])
         else:
             return x
-        model = nengo.Network('RL P-learning', seed=13)
-        
-        if intercept_dist == 0:
-            intercepts = nengo.dists.Uniform(-1,1)
-        elif intercept_dist == 1:
-            intercepts = AreaIntercepts(dimensions=DIM*2)
-        elif intercept_dist == 2:
-            intercepts = nengo.dists.Uniform(-.3,1)
+    model = nengo.Network('RL P-learning', seed=13)
+    
+    if intercept_dist == 0:
+        intercepts = nengo.dists.Uniform(-1,1)
+    elif intercept_dist == 1:
+        intercepts = AreaIntercepts(dimensions=DIM*2)
+    elif intercept_dist == 2:
+        intercepts = nengo.dists.Uniform(-.3,1)
 
     with model:
         cfg = nengo.Config(nengo.Ensemble, nengo.Connection)
