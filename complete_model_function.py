@@ -145,6 +145,7 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
             return index_to_state_vector[0]
 
     #FIXME: this is currently hardcoded for only 5 dimensions
+    # This normalizes state transition probability representations so they add up to 1
     def make_probability(t, x):
         s0 = min(max(0, x[0]),1)
         s1 = min(max(0, x[1]),1)
@@ -156,6 +157,7 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
             return (s0/total, s1/total, s2/total, x[3], x[4])
         else:
             return x
+   
     model = nengo.Network('RL P-learning', seed=13)
     
     if intercept_dist == 0:
