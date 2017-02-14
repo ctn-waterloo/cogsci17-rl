@@ -8,10 +8,11 @@ class RLTrial(pytry.NengoTrial):
     def params(self):
         self.param('dimensions', D=5)
         self.param('time interval', T_interval=0.5)
-        self.param('softmax noise', choice_noise=0.5)
-        self.param('learning rate', alpha = 0.1)
+        self.param('softmax noise', choice_noise=0.05)
+        self.param('learning rate', alpha = 0.3)
         self.param('neurons for state and action', N_state_action=500)
         self.param('intervals to run', n_intervals=10)
+        self.param('run in direct mode', direct=False)
 
     def model(self, p):
 
@@ -28,7 +29,7 @@ class RLTrial(pytry.NengoTrial):
                 self.most_recent_action = 'L'
                 self.values = np.zeros(2)
                 self.value_wait_times = [p.T_interval/2, p.T_interval]
-                self.n_intervals = 0
+                self.intervals_count = 0
                 self.rng = np.random.RandomState(seed=seed) # random number generator
                 self.upper_boundary = 0.75
                 self.lower_boundary = 0.25
@@ -41,14 +42,14 @@ class RLTrial(pytry.NengoTrial):
             def node_function(self, t, value):
                 if t >= self.value_wait_times[0]:
                     self.values[0] = value
-                    self.value_wait_times[0] = (self.n_intervals+1.5)*p.T_interval
+                    self.value_wait_times[0] = (self.intervals_count+1.5)*p.T_interval
                     self.consider_action = 'R'
                 if t >= self.value_wait_times[1]:
                     self.values[1] = value
-                    self.value_wait_times[1] = (self.n_intervals+2)*p.T_interval
+                    self.value_wait_times[1] = (self.intervals_count+2)*p.T_interval
 
                     self.choose_action()
-                    self.n_intervals += 1
+                    self.intervals_count += 1
                     self.consider_action = 'L'
 
                 s = self.vocab.parse(self.state).v
@@ -114,59 +115,65 @@ class RLTrial(pytry.NengoTrial):
 
         model = nengo.Network()
         with model:
-            env_node = nengo.Node(env.node_function, size_in=1)
-
-            # for plotting
-            state_plot = nengo.Node(size_in=3)
-            nengo.Connection(env_node[:p.D-2], state_plot)
-            #action_plot = nengo.Node(size_in=2)
-            #nengo.Connection(env_node[p.D+3:p.D*2], action_plot)
+            cfg = nengo.Config(nengo.Ensemble, nengo.Connection)
+            if p.direct:
+                cfg[nengo.Ensemble].neuron_type = nengo.Direct()
+                #cfg[nengo.Connection].synapse = None
             
-            # actually doing stuff
-            state_and_action = nengo.Ensemble(n_neurons=p.N_state_action, dimensions=p.D*2)
-            nengo.Connection(env_node[:p.D*2], state_and_action)
-
-            prod = nengo.networks.Product(n_neurons=200, dimensions=p.D)
-            transform = np.array([vocab.parse('S0').v,
-                                  vocab.parse('SA').v,
-                                  vocab.parse('SB').v,])
-            nengo.Connection(env_node[-3:], prod.A, transform=transform.T)
-
-            def ideal_transition(x):
-                sim_s = np.dot(x[:p.D], vocab.vectors)
-                index_s = np.argmax(sim_s)
-                s = vocab.keys[index_s]
-
-                sim_a = np.dot(x[p.D:], vocab.vectors)
-                index_a = np.argmax(sim_a)
-                a = vocab.keys[index_a]
-
-                threshold = 0.1
-
-                if sim_s[index_s]<threshold:
-                    return np.zeros(p.D)
-                if sim_a[index_a]<threshold:
-                    return np.zeros(p.D)
-                if s == 'S0':
-                    if a == 'L':
-                        pp = [0,0.7,0.3]
-                    elif a == 'R':
-                        pp = [0,0.3,0.7]
+            with cfg:
+                env_node = nengo.Node(env.node_function, size_in=1)
+    
+                # for plotting
+                state_plot = nengo.Node(size_in=3)
+                nengo.Connection(env_node[:p.D-2], state_plot)
+                #action_plot = nengo.Node(size_in=2)
+                #nengo.Connection(env_node[p.D+3:p.D*2], action_plot)
+                
+                # actually doing stuff
+                state_and_action = nengo.Ensemble(n_neurons=p.N_state_action, dimensions=p.D*2)
+                nengo.Connection(env_node[:p.D*2], state_and_action)
+    
+                prod = nengo.networks.Product(n_neurons=200, dimensions=p.D)
+                transform = np.array([vocab.parse('S0').v,
+                                      vocab.parse('SA').v,
+                                      vocab.parse('SB').v,])
+                nengo.Connection(env_node[-3:], prod.A, transform=transform.T)
+    
+                def ideal_transition(x):
+                    sim_s = np.dot(x[:p.D], vocab.vectors)
+                    index_s = np.argmax(sim_s)
+                    s = vocab.keys[index_s]
+    
+                    sim_a = np.dot(x[p.D:], vocab.vectors)
+                    index_a = np.argmax(sim_a)
+                    a = vocab.keys[index_a]
+    
+                    threshold = 0.1
+    
+                    if sim_s[index_s]<threshold:
+                        return np.zeros(p.D)
+                    if sim_a[index_a]<threshold:
+                        return np.zeros(p.D)
+                    if s == 'S0':
+                        if a == 'L':
+                            pp = [0,0.7,0.3]
+                        elif a == 'R':
+                            pp = [0,0.3,0.7]
+                        else:
+                            pp = [0,0,0]
+                    elif s == 'SA' or s=='SB':
+                        pp = [1,0,0]
                     else:
                         pp = [0,0,0]
-                elif s == 'SA' or s=='SB':
-                    pp = [1,0,0]
-                else:
-                    pp = [0,0,0]
-
-                return np.dot(transform.T, pp)
-            nengo.Connection(state_and_action, prod.B, function=ideal_transition)
-
-            nengo.Connection(prod.output, env_node, transform=np.ones((1, p.D)))
-            
-            # for plotting
-            value_plot = nengo.Node(size_in=1)
-            nengo.Connection(prod.output, value_plot, transform=np.ones((1, p.D)))
+    
+                    return np.dot(transform.T, pp)
+                nengo.Connection(state_and_action, prod.B, function=ideal_transition)
+    
+                nengo.Connection(prod.output, env_node, transform=np.ones((1, p.D)))
+                
+                # for plotting
+                value_plot = nengo.Node(size_in=1)
+                nengo.Connection(prod.output, value_plot, transform=np.ones((1, p.D)))
             
         self.env = env
         self.locals = locals()
@@ -205,7 +212,7 @@ class RLTrial(pytry.NengoTrial):
             import pandas
             df = pandas.DataFrame(data)
             import seaborn
-            seaborn.barplot('rewarded', 'stay', hue='rare', data=df)
+            seaborn.barplot('rewarded', 'stay', hue='rare', order=[1, 0], data=df)
 
 
         return dict(
@@ -217,6 +224,6 @@ class RLTrial(pytry.NengoTrial):
 
 if __name__ == '__builtin__':
     rl = RLTrial()
-    model = rl.make_model(T_interval=0.1)
+    model = rl.make_model(T_interval=0.1, direct=True)
     for k, v in rl.locals.items():
         locals()[k] = v
