@@ -29,11 +29,15 @@ class RLTrial(pytry.NengoTrial):
                 self.values = np.zeros(2)
                 self.value_wait_times = [p.T_interval/2, p.T_interval]
                 self.n_intervals = 0
-                self.rng = np.random.RandomState(seed=seed)
-                self.reward_prob = self.rng.uniform(0.25, 0.75, size=(2,2))
-                self.history = []
-                self.rewards = []
+                self.rng = np.random.RandomState(seed=seed) # random number generator
+                self.upper_boundary = 0.75
+                self.lower_boundary = 0.25
+                self.reward_prob = self.rng.uniform(self.lower_boundary, self.upper_boundary, size=(2,2)) 
+                self.history = [] # history of actions chosen in state 0 and state seen as a result
+                self.rewards = [] # history of rewards received in terminal states
 
+            # environment node function
+            # passes appropriate information around at correct time intervals
             def node_function(self, t, value):
                 if t >= self.value_wait_times[0]:
                     self.values[0] = value
@@ -77,8 +81,9 @@ class RLTrial(pytry.NengoTrial):
                     chosen = self.softmax(self.q[q_index])
                     pp = self.reward_prob[0 if self.state=='SA' else 1,
                                          chosen]
-                    reward = self.rng.rand() < pp
-
+                    reward = self.rng.rand() < pp 
+                    self.random_walk()
+                    
                     q = self.q[q_index,chosen]
                     if q == np.inf:  # check for first setting of value
                         q = reward
@@ -89,10 +94,20 @@ class RLTrial(pytry.NengoTrial):
                     self.rewards.append(reward)
 
 
-
+            # for action selection
             def softmax(self, values):
                 return np.argmax(values + np.random.normal(size=values.shape)*p.choice_noise)
 
+            # change reward_prob using random walk
+            # all reward probabilities should change at each step
+            def random_walk(self):
+                new_noise = np.random.normal(size=self.reward_prob.shape)*0.025 # magic number SD defined in Daw et al. 2011
+                for index, pp in np.ndenumerate(self.reward_prob):
+                    new_prob = pp+new_noise[index]
+                    if new_prob > self.upper_boundary or new_prob < self.lower_boundary:
+                        self.reward_prob[index] = pp-new_noise[index]
+                    else:
+                        self.reward_prob[index] = new_prob
 
 
         env = Environment(vocab, seed=2)
@@ -101,7 +116,13 @@ class RLTrial(pytry.NengoTrial):
         with model:
             env_node = nengo.Node(env.node_function, size_in=1)
 
-
+            # for plotting
+            state_plot = nengo.Node(size_in=3)
+            nengo.Connection(env_node[:p.D-2], state_plot)
+            #action_plot = nengo.Node(size_in=2)
+            #nengo.Connection(env_node[p.D+3:p.D*2], action_plot)
+            
+            # actually doing stuff
             state_and_action = nengo.Ensemble(n_neurons=p.N_state_action, dimensions=p.D*2)
             nengo.Connection(env_node[:p.D*2], state_and_action)
 
@@ -142,6 +163,11 @@ class RLTrial(pytry.NengoTrial):
             nengo.Connection(state_and_action, prod.B, function=ideal_transition)
 
             nengo.Connection(prod.output, env_node, transform=np.ones((1, p.D)))
+            
+            # for plotting
+            value_plot = nengo.Node(size_in=1)
+            nengo.Connection(prod.output, value_plot, transform=np.ones((1, p.D)))
+            
         self.env = env
         self.locals = locals()
         return model
@@ -191,6 +217,6 @@ class RLTrial(pytry.NengoTrial):
 
 if __name__ == '__builtin__':
     rl = RLTrial()
-    model = rl.make_model(T_interval=0.2)
+    model = rl.make_model(T_interval=0.1)
     for k, v in rl.locals.items():
         locals()[k] = v
