@@ -13,6 +13,7 @@ class RLTrial(pytry.NengoTrial):
         self.param('neurons for state and action', N_state_action=500)
         self.param('intervals to run', n_intervals=10)
         self.param('run in direct mode', direct=False)
+        self.param('random seed for environment', env_seed=2)
 
     def model(self, p):
 
@@ -97,12 +98,13 @@ class RLTrial(pytry.NengoTrial):
 
             # for action selection
             def softmax(self, values):
-                return np.argmax(values + np.random.normal(size=values.shape)*p.choice_noise)
+                return np.argmax(values + self.rng.normal(size=values.shape)*p.choice_noise)
+                #return np.argmax(values + np.random.normal(size=values.shape)*p.choice_noise)
 
             # change reward_prob using random walk
             # all reward probabilities should change at each step
             def random_walk(self):
-                new_noise = np.random.normal(size=self.reward_prob.shape)*0.025 # magic number SD defined in Daw et al. 2011
+                new_noise = self.rng.normal(size=self.reward_prob.shape)*0.025 # magic number SD defined in Daw et al. 2011
                 for index, pp in np.ndenumerate(self.reward_prob):
                     new_prob = pp+new_noise[index]
                     if new_prob > self.upper_boundary or new_prob < self.lower_boundary:
@@ -111,7 +113,7 @@ class RLTrial(pytry.NengoTrial):
                         self.reward_prob[index] = new_prob
 
 
-        env = Environment(vocab, seed=2)
+        env = Environment(vocab, seed=p.env_seed)
 
         model = nengo.Network()
         with model:
@@ -224,6 +226,6 @@ class RLTrial(pytry.NengoTrial):
 
 if __name__ == '__builtin__':
     rl = RLTrial()
-    model = rl.make_model(T_interval=0.1, direct=True)
+    model = rl.make_model(T_interval=0.2, direct=True)
     for k, v in rl.locals.items():
         locals()[k] = v
