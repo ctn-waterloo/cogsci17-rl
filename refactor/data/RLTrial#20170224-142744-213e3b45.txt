@@ -1,0 +1,17 @@
+choice_noise = 0.05
+n_intervals = 10
+neuron_type = 'default'
+N_state_action = 500
+D = 5
+direct = False
+seed = 9
+T_interval = 0.05
+alpha = 0.3
+dt = 0.001
+env_seed = 4
+backend = 'nengo'
+
+stay_prob = array([[  1.,   1.],
+       [ nan,   0.]])
+rewards = [True, True, False, True, True]
+history = [(1, 'SA'), (0, 'SA'), (0, 'SA'), (0, 'SA'), (0, 'SA')]
