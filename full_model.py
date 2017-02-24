@@ -23,6 +23,8 @@ learning_rate=9e-5#5e-6
 # Time between state transitions
 time_interval = 0.1#0.5
 
+nengo_seed=13
+
 states = ['S0', 'S1', 'S2']
 
 actions = ['L', 'R']
@@ -152,13 +154,13 @@ def find_closest_vector(vec, index_to_vector):
     return best_index
 
 intercept_dist=0
-model = nengo.Network('RL P-learning', seed=13)
+model = nengo.Network('RL P-learning', seed=nengo_seed)
 with model:
     cfg = nengo.Config(nengo.Ensemble, nengo.Connection)
     if direct:
         cfg[nengo.Ensemble].neuron_type = nengo.Direct()
-        cfg[nengo.Connection].synapse = None
-
+        cfg[nengo.Connection].synapse = Non
+e
     if intercept_dist == 0:
         intercepts = nengo.dists.Uniform(-1,1)
     elif intercept_dist == 1:
