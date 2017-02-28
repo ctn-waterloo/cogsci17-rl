@@ -121,6 +121,7 @@ class RLFastTrial(pytry.NengoTrial):
             cfg = nengo.Config(nengo.Ensemble, nengo.Connection)
             if p.direct:
                 cfg[nengo.Ensemble].neuron_type = nengo.Direct()
+                cfg[nengo.Connection].synapse = None
             elif p.rate:
                 cfg[nengo.Ensemble].neuron_type = nengo.LIFRate()
                 cfg[nengo.Connection].synapse = None#nengo.synapses.Lowpass(tau=0.0)
@@ -173,7 +174,7 @@ class RLFastTrial(pytry.NengoTrial):
                     return np.dot(transform.T, pp)
                 nengo.Connection(state_and_action, prod.B, function=ideal_transition)
     
-                if p.rate:
+                if p.rate or p.direct:
                     nengo.Connection(prod.output, env_node, transform=np.ones((1, p.D)), synapse=0)
                 else:
                     nengo.Connection(prod.output, env_node, transform=np.ones((1, p.D)))
