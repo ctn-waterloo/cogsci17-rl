@@ -16,8 +16,8 @@ parser = argparse.ArgumentParser(description='Run the neural model-based reinfor
 parser.add_argument('--runs', dest='num_runs', type=int, default=10, help='Number of instances of the model to run')
 parser.add_argument('--steps', dest='num_steps', type=int, default=20000, help='Number of steps to run each model for (default=20000)')
 parser.add_argument('--direct', dest='direct', action='store_true', help='Run the model in direct mode or not (default=False)')
-parser.add_argument('--p_learning', dest='p_learning', action='store_true', help='Learning the state transition probabilities or not (default=False)')
-parser.add_argument('--noinit', dest='initialized', action='store_false', help='If the transition probabilities are set to 50/50 or not (70/30). This flag should not be set if learning is not enabled, and should ideally be set if it is enabled (default=70/30)')
+parser.add_argument('--p_learning', dest='p_learning', action='store_true', help='Set learning the state transition probabilities or not (if not set = False)')
+parser.add_argument('--noinit', dest='initialized', action='store_false', help='If the transition probabilities are set to 50/50 or not (70/30). This flag should not be set if learning is not enabled, and should ideally be set if it is enabled (if not set=70/30)')
 parser.add_argument('--synapse', dest='synapse', type=float, default=0.0, help='The synapse on the connection from value back to the environment (default=0.0)')
 parser.add_argument('--dim', dest='dimensionality', type=int, default=5, help='Number of dimensions for the vocab (default=5)')
 parser.add_argument('--lr', dest='learning_rate', type=float, default=1e-4, help='The learning rate for the transition probabilities (default=1e-4)')
@@ -27,11 +27,15 @@ parser.add_argument('--forcedprob', dest='forced_prob', action='store_true', hel
 # original model used default nengo_seed of 13
 parser.add_argument('--seed', dest='nengo_seed', type=int, default=1, help='Set nengo seed (default=1)')
 parser.add_argument('--t_interval', dest='t_interval', type=float, default=0.1, help='Time between state transitions (default=0.1s)')
+parser.add_argument('--valtoenv', dest='valtoenv', action='store_true', help='Use synapse of 0.025 for value to environment connection (if set)')
 
 args = parser.parse_args()
 
 num_runs = args.num_runs
 num_steps = args.num_steps
+
+# Set synapse of value to environment connection to 0.025
+valtoenv = args.valtoenv
 
 # Running some ensembles in Direct mode
 direct = args.direct
@@ -66,10 +70,12 @@ def l(b):
         return 'F'
 
 # Day-Hour:Minute
-date_time_string = time.strftime("%d-%H:%M")
+date_time_string = time.strftime("%b-%d-%H:%M")
 
-suffix = 'nengo_r{0}_s{1}_d{2}_p{3}_i{4}_ps{5}_int{6}_sy{7}_dim{8}_l{9}_ns{10}_t{11}_{12}'.format(num_runs, num_steps, l(direct), l(p_learning), l(initialized), 
-                                                                           l(forced_prob), intercept_dist, synapse, dimensionality, learning_rate, nengo_seed, t_interval, date_time_string)
+suffix = 'nengo_r{0}_s{1}_d{2}_p{3}_i{4}_ps{5}_int{6}_sy{7}_dim{8}_l{9}_ns{10}_t{11}_v{12}_{13}'.format(num_runs, 
+                                                                            num_steps, l(direct), l(p_learning), l(initialized), 
+                                                                            l(forced_prob), intercept_dist, synapse, dimensionality, learning_rate, 
+                                                                            nengo_seed, t_interval, valtoenv, date_time_string)
 
 outfile_name = 'data/out_' + suffix + '.txt'
 raw_data_dir = 'data/raw_data_' + suffix
@@ -87,7 +93,7 @@ with open(outfile_name, 'w+') as outfile:
 
         model, agent = get_model(direct=direct, p_learning=p_learning, initialized=initialized, learning_rate=learning_rate,
                                  forced_prob=forced_prob, intercept_dist=intercept_dist, synapse=synapse, dimensionality=dimensionality,
-                                 nengo_seed=nengo_seed, t_interval = t_interval)
+                                 nengo_seed=nengo_seed, t_interval = t_interval, valtoenv=valtoenv)
 
         sim = nengo.Simulator(model)
         # The current version of p_learning needs to run through twice for each step

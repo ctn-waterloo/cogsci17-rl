@@ -115,6 +115,7 @@ class ModelBasedForward:
         q=[self.getQ(state,a)+random.normalvariate(0, self.noise) for a in self.actions]
         i=q.index(max(q))
         action=self.actions[i]
+        #print self.q
         return action
 
     # returns the action with the highest Q-value

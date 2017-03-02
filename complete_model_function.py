@@ -11,7 +11,7 @@ from nengolib.signal import z
 import scipy
 
 def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
-              learning_rate=1e-4, forced_prob=False, intercept_dist=0, synapse=0.005, dimensionality=5, nengo_seed=1, t_interval=0.1):
+              learning_rate=1e-4, forced_prob=False, intercept_dist=0, synapse=0.005, dimensionality=5, nengo_seed=1, t_interval=0.1, valtoenv=False):
 
     DIM = dimensionality
     
@@ -251,6 +251,8 @@ def get_model(q_scaling=1, direct=False, p_learning=True, initialized=False,
                 nengo.Connection(model.state.output, model.error.input, transform=-1)
                 nengo.Connection(model.probability.output, model.error.input, transform=1,
                                  synapse=z**(-int(time_interval*2*1000)))
-
-            nengo.Connection(model.value, model.env, synapse=synapse)
+            if valtoenv:
+                nengo.Connection(model.value, model.env, synapse=0.025)
+            else:
+                nengo.Connection(model.value, model.env, synapse=synapse)
     return model, agent

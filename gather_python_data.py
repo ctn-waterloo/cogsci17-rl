@@ -6,8 +6,8 @@ from calcStayProb import CalcStayProb
 import sys
 import time
 
-num_runs = 40
-num_steps = 40000
+num_runs = 10
+num_steps = 20000
 
 # Read option parameters from the command line
 if len(sys.argv) == 3:
@@ -19,8 +19,8 @@ if len(sys.argv) == 2:
 # {'alpha': 0.11039931648303387, 'noise': 0.045787897002043665}
 #for alpha in [0.11039931648303387]:#[0.07785532763827441]:#[0.06803004214676607]:#[0.45553532900447363]:#[0.3566806]:#[0.3]:#[0.01,0.05, 0.1, .2, .3]:
 #    for noise in [0.045787897002043665]:#[0.04313952374995614]:#[0.039566660494930024]:#[0.05866279768044559]:#[0.056433]:#[0.5]:#[0.05, 0.5]:
-for alpha in [0.01,0.05, 0.1, .2, .3]:
-    for noise in [0.05, 0.5]:
+for alpha in [0.05, 0.1, .2, .3, .4, .5, .6, .7, .8, .9, 1.0]:
+    for noise in [0.05]:
         outfile_name = 'data/out_py_r{0}_s{1}_a{2}_n{3}.txt'.format(num_runs, num_steps, alpha, noise)
         with open(outfile_name, 'w+') as outfile:
             for i in range(num_runs):
