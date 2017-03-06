@@ -99,7 +99,7 @@ with open(outfile_name, 'w+') as outfile:
                                  forced_prob=forced_prob, intercept_dist=intercept_dist, synapse=synapse, dimensionality=dimensionality,
                                  nengo_seed=nengo_seed, t_interval = t_interval, valtoenv=valtoenv)
 
-        sim = nengo.Simulator(model)
+        sim = nengo.Simulator(model, progress_bar=False)
         # The current version of p_learning needs to run through twice for each step
         sim.run(num_steps*2*t_interval)
         temp_str_list = agent.result_string
