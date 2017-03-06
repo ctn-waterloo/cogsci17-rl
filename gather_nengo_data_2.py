@@ -13,6 +13,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Run the neural model-based reinforcement learning code and save the output')
 
+parser.add_argument('--label', dest='label', type=str, default='', help='Optional label for further differentiating different runs')
 parser.add_argument('--runs', dest='num_runs', type=int, default=10, help='Number of instances of the model to run')
 parser.add_argument('--steps', dest='num_steps', type=int, default=20000, help='Number of steps to run each model for (default=20000)')
 parser.add_argument('--direct', dest='direct', action='store_true', help='Run the model in direct mode or not (default=False)')
@@ -29,10 +30,13 @@ parser.add_argument('--seed', dest='nengo_seed', type=int, default=1, help='Set 
 parser.add_argument('--t_interval', dest='t_interval', type=float, default=0.1, help='Time between state transitions (default=0.1s)')
 parser.add_argument('--valtoenv', dest='valtoenv', action='store_true', help='Use synapse of 0.025 for value to environment connection (if set)')
 
+
 args = parser.parse_args()
 
 num_runs = args.num_runs
 num_steps = args.num_steps
+
+label = args.label
 
 # Set synapse of value to environment connection to 0.025
 valtoenv = args.valtoenv
@@ -72,10 +76,10 @@ def l(b):
 # Day-Hour:Minute
 date_time_string = time.strftime("%b-%d-%H:%M")
 
-suffix = 'nengo_r{0}_s{1}_d{2}_p{3}_i{4}_ps{5}_int{6}_sy{7}_dim{8}_l{9}_ns{10}_t{11}_v{12}_{13}'.format(num_runs, 
+suffix = 'nengo_r{0}_s{1}_d{2}_p{3}_i{4}_ps{5}_int{6}_sy{7}_dim{8}_l{9}_ns{10}_t{11}_v{12}_{13}_{14}'.format(num_runs, 
                                                                             num_steps, l(direct), l(p_learning), l(initialized), 
                                                                             l(forced_prob), intercept_dist, synapse, dimensionality, learning_rate, 
-                                                                            nengo_seed, t_interval, valtoenv, date_time_string)
+                                                                            nengo_seed, t_interval, valtoenv, date_time_string, label)
 
 outfile_name = 'data/out_' + suffix + '.txt'
 raw_data_dir = 'data/raw_data_' + suffix
