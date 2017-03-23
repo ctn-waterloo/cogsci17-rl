@@ -4,7 +4,7 @@ import nengo.spa as spa
 
 import pytry
 
-class RLFastTrial(pytry.NengoTrial):
+class RLSynapseTrial(pytry.NengoTrial):
     def params(self):
         self.param('dimensions', D=5)
         self.param('time interval', T_interval=0.5)
